@@ -46,21 +46,18 @@ import { VoiceProvider } from '@humeai/voice-react';
 
 ## Usage
 
-### Quickstart
+> :rocket: Visit our [Next.js quickstart](https://dev.hume.ai/docs/speech-to-speech-evi/quickstart/nextjs) for step-by-step setup instructions and example code to jumpstart your development.
+
+### Context Provider
 
 To use the SDK, wrap your components in the `VoiceProvider`, which will enable your components to access available voice methods. Here's a simple example to get you started:
 
 ```tsx
 import { VoiceProvider } from '@humeai/voice-react';
 
-function App() {
-  const apiKey = process.env.HUME_API_KEY;
-
+function Page() {
   return (
-    <VoiceProvider
-      auth={{ type: 'apiKey', value: apiKey }}
-      configId={/* Optional: Your EVI Configuration ID */}
-    >
+    <VoiceProvider>
       {/* ... */}
     </VoiceProvider>
   );
@@ -119,9 +116,14 @@ After you have set up your voice provider, you will be able to access various pr
 For example, to include a button to start a call, you could create a button like this:
 
 ```tsx
+'use client'
 import { useVoice } from '@humeai/voice-react';
 
-export function StartCallButton() {
+export function StartCall({
+  accessToken,
+}: {
+  accessToken: string;
+}) {
   const { connect } = useVoice();
 
   return (
@@ -129,7 +131,7 @@ export function StartCallButton() {
       <button
         onClick={() => {
           void connect({
-            auth: { type: 'accessToken', value: '<YOUR_ACCESS_TOKEN>' },
+            auth: { type: 'accessToken', value: accessToken },
             configId: '<YOUR_CONFIG_ID>',
             // other configuration props go here
           });
