@@ -39,6 +39,17 @@ export const useSoundPlayer = (props: {
 
   const isWorkletActive = useRef(false);
 
+  // lastQueuedChunk and chunkBufferQueues are used to make sure that
+  // we don't play chunks out of order. chunkBufferQueues is NOT the
+  // audio playback queue
+  const lastQueuedChunk = useRef({
+    id: '',
+    index: 0,
+  });
+  const chunkBufferQueues = useRef<
+    Record<string, Array<AudioBuffer | undefined>>
+  >({});
+
   /**
    * Only for non-AudioWorklet mode.
    * In non-AudioWorklet mode, audio clips are managed and played sequentially.
@@ -241,6 +252,74 @@ export const useSoundPlayer = (props: {
     }
   }, [props.enableAudioWorklet]);
 
+  const convertToAudioBuffer = useCallback(
+    async (message: AudioOutputMessage) => {
+      if (!isInitialized.current || !audioContext.current) {
+        onError.current(
+          'Audio player has not been initialized',
+          'audio_player_not_initialized',
+        );
+        return;
+      }
+      const blob = convertBase64ToBlob(message.data);
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioBuffer =
+        await audioContext.current.decodeAudioData(arrayBuffer);
+      return audioBuffer;
+    },
+    [],
+  );
+
+  const getNextAudioBuffers = useCallback(
+    (message: AudioOutputMessage, audioBuffer: AudioBuffer) => {
+      //1. Add the current buffer to the queue
+      if (!chunkBufferQueues.current[message.id]) {
+        chunkBufferQueues.current[message.id] = [];
+      }
+      const queueForCurrMessage = chunkBufferQueues.current[message.id] || [];
+      queueForCurrMessage[message.index] = audioBuffer;
+
+      // 2. Now collect buffers that are ready to be played
+      const { id: lastId } = lastQueuedChunk.current;
+      const buffers: AudioBuffer[] = [];
+
+      // If the current message ID is different from the last one that was added
+      // to the queue, that means that we're playing a new message now, so the first chunk
+      // we play needs to be at index 0.
+      if (message.id !== lastId) {
+        if (queueForCurrMessage[0]) {
+          lastQueuedChunk.current = { id: message.id, index: 0 };
+          buffers.push(queueForCurrMessage[0]);
+          // Every time we add a buffer to the buffers array, we set the current index to undefined.
+          // This is so that we don't try to add the same buffer to the buffers array again the next
+          // time we call this function.
+          queueForCurrMessage[0] = undefined;
+        } else {
+          // If the current index is not 0, that means the chunks came out of order,
+          // so we return an empty array instead of returning anything to be added to the queue.
+          return [];
+        }
+      }
+
+      // Drain the queue - basically if any chunks were received out of order previously,
+      // and they're now ready to be played because the earlier chunks
+      // have been received, we can add them to the buffers array.
+      let nextIdx = lastQueuedChunk.current.index + 1;
+      let nextBuf = queueForCurrMessage[nextIdx];
+      while (nextBuf) {
+        buffers.push(nextBuf);
+        // As above re: setting queueForCurrMessage[nextIdx] to undefined
+        queueForCurrMessage[nextIdx] = undefined;
+        lastQueuedChunk.current.index = nextIdx;
+        nextBuf = queueForCurrMessage[nextIdx];
+        nextIdx += 1;
+      }
+
+      return buffers;
+    },
+    [],
+  );
+
   const addToQueue = useCallback(
     async (message: AudioOutputMessage) => {
       if (!isInitialized.current || !audioContext.current) {
@@ -251,34 +330,50 @@ export const useSoundPlayer = (props: {
         return;
       }
 
-      try {
-        const blob = convertBase64ToBlob(message.data);
-        const arrayBuffer = await blob.arrayBuffer();
-        const audioBuffer =
-          await audioContext.current.decodeAudioData(arrayBuffer);
+      const audioBuffer = await convertToAudioBuffer(message);
+      if (!audioBuffer) {
+        onError.current(
+          'Failed to convert data to audio buffer',
+          'malformed_audio',
+        );
+        return;
+      }
 
-        if (props.enableAudioWorklet) {
-          // AudioWorklet mode
-          const pcmData = audioBuffer.getChannelData(0);
-          workletNode.current?.port.postMessage({
-            type: 'audio',
-            data: pcmData,
-            id: message.id,
-            index: message.index,
-          });
-        } else if (!props.enableAudioWorklet) {
-          // Non-AudioWorklet mode
-          clipQueue.current.push({
-            id: message.id,
-            buffer: audioBuffer,
-            index: message.index,
-          });
-          setQueueLength(clipQueue.current.length);
-          // playNextClip will iterate the clipQueue upon finishing
-          // the playback of the current audio clip,
-          // so we can just call playNextClip here if it's the only one in the queue
-          if (clipQueue.current.length === 1) {
-            playNextClip();
+      // Because converting the data to an audi obuffer is async, chunks that are
+      // only a few ms apart can end up converting out of order. So we need this
+      // getNextAudioBuffers function to make sure that we're playing the chunks
+      // in the correct order.
+      const playableBuffers = getNextAudioBuffers(message, audioBuffer);
+      if (playableBuffers.length === 0) {
+        return;
+      }
+
+      try {
+        // Loop through the buffers and add them to the playback queue one at a time
+        for (const nextAudioBufferToPlay of playableBuffers) {
+          if (props.enableAudioWorklet) {
+            // AudioWorklet mode
+            const pcmData = nextAudioBufferToPlay.getChannelData(0);
+            workletNode.current?.port.postMessage({
+              type: 'audio',
+              data: pcmData,
+              id: message.id,
+              index: message.index,
+            });
+          } else if (!props.enableAudioWorklet) {
+            // Non-AudioWorklet mode
+            clipQueue.current.push({
+              id: message.id,
+              buffer: nextAudioBufferToPlay,
+              index: message.index,
+            });
+            setQueueLength(clipQueue.current.length);
+            // playNextClip will iterate the clipQueue upon finishing
+            // the playback of the current audio clip,
+            // so we can just call playNextClip here if it's the only one in the queue
+            if (clipQueue.current.length === 1) {
+              playNextClip();
+            }
           }
         }
       } catch (e) {
@@ -289,7 +384,12 @@ export const useSoundPlayer = (props: {
         );
       }
     },
-    [playNextClip, props.enableAudioWorklet],
+    [
+      convertToAudioBuffer,
+      getNextAudioBuffers,
+      playNextClip,
+      props.enableAudioWorklet,
+    ],
   );
 
   const stopAll = useCallback(async () => {
@@ -299,6 +399,12 @@ export const useSoundPlayer = (props: {
     setIsAudioMuted(false);
     setVolumeState(1.0);
     setFft(generateEmptyFft());
+
+    chunkBufferQueues.current = {};
+    lastQueuedChunk.current = {
+      id: '',
+      index: 0,
+    };
 
     if (frequencyDataIntervalId.current) {
       window.clearInterval(frequencyDataIntervalId.current);
