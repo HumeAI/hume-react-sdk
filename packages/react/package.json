@@ -28,7 +28,6 @@
   "dependencies": {
     "date-fns": "^3.6.0",
     "hume": "0.12.1",
-    "meyda": "^5.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "type-fest": "^4.26.0",
@@ -41,7 +40,6 @@
     "@testing-library/react-hooks": "^8.0.1",
     "@total-typescript/shoehorn": "^0.1.2",
     "@types/eslint": "^8.56.2",
-    "@types/meyda": "^4.3.8",
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
