@@ -281,7 +281,8 @@ export const useSoundPlayer = (props: {
 
       // 2. Now collect buffers that are ready to be played
       const { id: lastId } = lastQueuedChunk.current;
-      const buffers: AudioBuffer[] = [];
+      const buffers: Array<{ id: string; index: number; buffer: AudioBuffer }> =
+        [];
 
       // If the current message ID is different from the last one that was added
       // to the queue, that means that we're playing a new message now, so the first chunk
@@ -289,7 +290,11 @@ export const useSoundPlayer = (props: {
       if (message.id !== lastId) {
         if (queueForCurrMessage[0]) {
           lastQueuedChunk.current = { id: message.id, index: 0 };
-          buffers.push(queueForCurrMessage[0]);
+          buffers.push({
+            id: message.id,
+            index: 0,
+            buffer: queueForCurrMessage[0],
+          });
           // Every time we add a buffer to the buffers array, we set the current index to undefined.
           // This is so that we don't try to add the same buffer to the buffers array again the next
           // time we call this function.
@@ -307,7 +312,7 @@ export const useSoundPlayer = (props: {
       let nextIdx = lastQueuedChunk.current.index + 1;
       let nextBuf = queueForCurrMessage[nextIdx];
       while (nextBuf) {
-        buffers.push(nextBuf);
+        buffers.push({ index: nextIdx, buffer: nextBuf, id: message.id });
         // As above re: setting queueForCurrMessage[nextIdx] to undefined
         queueForCurrMessage[nextIdx] = undefined;
         lastQueuedChunk.current.index = nextIdx;
@@ -353,19 +358,19 @@ export const useSoundPlayer = (props: {
         for (const nextAudioBufferToPlay of playableBuffers) {
           if (props.enableAudioWorklet) {
             // AudioWorklet mode
-            const pcmData = nextAudioBufferToPlay.getChannelData(0);
+            const pcmData = nextAudioBufferToPlay.buffer.getChannelData(0);
             workletNode.current?.port.postMessage({
               type: 'audio',
               data: pcmData,
-              id: message.id,
-              index: message.index,
+              id: nextAudioBufferToPlay.id,
+              index: nextAudioBufferToPlay.index,
             });
           } else if (!props.enableAudioWorklet) {
             // Non-AudioWorklet mode
             clipQueue.current.push({
-              id: message.id,
-              buffer: nextAudioBufferToPlay,
-              index: message.index,
+              id: nextAudioBufferToPlay.id,
+              buffer: nextAudioBufferToPlay.buffer,
+              index: nextAudioBufferToPlay.index,
             });
             setQueueLength(clipQueue.current.length);
             // playNextClip will iterate the clipQueue upon finishing
