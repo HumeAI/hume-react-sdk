@@ -39,16 +39,13 @@ export const useSoundPlayer = (props: {
 
   const isWorkletActive = useRef(false);
 
-  // lastQueuedChunk and chunkBufferQueues are used to make sure that
+  // chunkBufferQueues and lastQueuedChunk are used to make sure that
   // we don't play chunks out of order. chunkBufferQueues is NOT the
-  // audio playback queue
-  const lastQueuedChunk = useRef({
-    id: '',
-    index: 0,
-  });
+  // audio playback queue.
   const chunkBufferQueues = useRef<
     Record<string, Array<AudioBuffer | undefined>>
   >({});
+  const lastQueuedChunk = useRef<{ id: string; index: number } | null>(null);
 
   /**
    * Only for non-AudioWorklet mode.
@@ -280,7 +277,7 @@ export const useSoundPlayer = (props: {
       queueForCurrMessage[message.index] = audioBuffer;
 
       // 2. Now collect buffers that are ready to be played
-      const { id: lastId } = lastQueuedChunk.current;
+      const lastId = lastQueuedChunk.current?.id;
       const buffers: Array<{ id: string; index: number; buffer: AudioBuffer }> =
         [];
 
@@ -309,15 +306,15 @@ export const useSoundPlayer = (props: {
       // Drain the queue - basically if any chunks were received out of order previously,
       // and they're now ready to be played because the earlier chunks
       // have been received, we can add them to the buffers array.
-      let nextIdx = lastQueuedChunk.current.index + 1;
+      let nextIdx = (lastQueuedChunk.current?.index || 0) + 1;
       let nextBuf = queueForCurrMessage[nextIdx];
       while (nextBuf) {
         buffers.push({ index: nextIdx, buffer: nextBuf, id: message.id });
         // As above re: setting queueForCurrMessage[nextIdx] to undefined
         queueForCurrMessage[nextIdx] = undefined;
-        lastQueuedChunk.current.index = nextIdx;
-        nextBuf = queueForCurrMessage[nextIdx];
+        lastQueuedChunk.current = { id: message.id, index: nextIdx };
         nextIdx += 1;
+        nextBuf = queueForCurrMessage[nextIdx];
       }
 
       return buffers;
@@ -406,10 +403,7 @@ export const useSoundPlayer = (props: {
     setFft(generateEmptyFft());
 
     chunkBufferQueues.current = {};
-    lastQueuedChunk.current = {
-      id: '',
-      index: 0,
-    };
+    lastQueuedChunk.current = null;
 
     if (frequencyDataIntervalId.current) {
       window.clearInterval(frequencyDataIntervalId.current);
