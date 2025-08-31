@@ -230,8 +230,20 @@ export const useVoiceClient = (props: {
                   // otherwise, report error
                   if (response.type === 'tool_response') {
                     socket.sendToolResponseMessage(response);
+                    
+                    onMessage.current?.({
+                      ...response,
+                      receivedAt: new Date(),
+                    });
+
                   } else if (response.type === 'tool_error') {
                     socket.sendToolErrorMessage(response);
+
+                    onMessage.current?.({
+                      ...response,
+                      receivedAt: new Date(),
+                    });
+                    
                   } else {
                     onToolCallError.current?.(
                       'Invalid response from tool call',
