@@ -35,7 +35,7 @@
     "vitest": "^3.1.2"
   },
   "dependencies": {
-    "hume": "0.13.3",
+    "hume": "file:/Users/twitchard/dev/hume-typescript-sdk-preview/hume-v0.0.0.tgz",
     "zod": "^3.22.4"
   },
   "browserslist": [

@@ -194,8 +194,8 @@ importers:
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.13.3
-        version: 0.13.3
+        specifier: file:/Users/twitchard/dev/hume-typescript-sdk-preview/hume-v0.0.0.tgz
+        version: file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.13.3
-        version: 0.13.3
+        specifier: file:/Users/twitchard/dev/hume-typescript-sdk-preview/hume-v0.0.0.tgz
+        version: file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.13.3
-        version: 0.13.3
+        specifier: file:/Users/twitchard/dev/hume-typescript-sdk-preview/hume-v0.0.0.tgz
+        version: file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3056,8 +3056,10 @@ packages:
   hume@0.11.4:
     resolution: {integrity: sha512-DFS7qJhKWF3Cbos0cgiR6DLXYW17yJi8PpC0KSmtUqR2zr05CnbowYjVF2NXhWDzvKuJnARBeKu5AiNTmaO97A==}
 
-  hume@0.13.3:
-    resolution: {integrity: sha512-/wS3LVpmSggjRLaKGKA7RtNmOYlUH8XoK4jNmx4rMev/KP4C3azqE+bIVNco1W87dhFEs8hI7Wbc3AmhtIBvkA==}
+  hume@file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz:
+    resolution: {integrity: sha512-yncjS+Mk576+0u96qdnUpWPmOUR0bLCUC+FmfirjjdIWO4GnwuH7YaX5NKFfdOi4QvOMVxlzBcCAoHGQEl364g==, tarball: file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz}
+    version: 0.0.0
+    engines: {node: '>=18.0.0'}
 
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
@@ -7814,18 +7816,11 @@ snapshots:
       - encoding
       - utf-8-validate
 
-  hume@0.13.3:
+  hume@file:../hume-typescript-sdk-preview/hume-v0.0.0.tgz:
     dependencies:
-      node-fetch: 2.7.0
-      qs: 6.14.0
-      readable-stream: 4.5.2
-      url-join: 4.0.1
-      uuid: 9.0.1
       ws: 8.17.0
-      zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
-      - encoding
       - utf-8-validate
 
   iconv-lite@0.6.3:

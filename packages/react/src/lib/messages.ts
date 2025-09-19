@@ -1,5 +1,4 @@
-import { type Hume } from 'hume';
-import { SubscribeEvent } from 'hume/serialization/resources/empathicVoice/index.js';
+import { type Hume, serialization as HumeSerialization } from 'hume';
 
 import { type AudioMessage, parseAudioMessage } from './audio-message';
 import {
@@ -58,7 +57,7 @@ export const parseMessageData = async (
     };
   }
 
-  const parseResponse = SubscribeEvent.parse(data);
+  const parseResponse = HumeSerialization.empathicVoice.SubscribeEvent.parse(data);
 
   if (!parseResponse.ok) {
     return {
