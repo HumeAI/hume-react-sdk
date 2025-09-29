@@ -194,8 +194,8 @@ importers:
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.13.7
-        version: 0.13.7
+        specifier: 0.13.8
+        version: 0.13.8
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.13.7
-        version: 0.13.7
+        specifier: ^0.13.8
+        version: 0.13.8
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.13.7
-        version: 0.13.7
+        specifier: 0.13.8
+        version: 0.13.8
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3075,8 +3075,8 @@ packages:
   hume@0.11.4:
     resolution: {integrity: sha512-DFS7qJhKWF3Cbos0cgiR6DLXYW17yJi8PpC0KSmtUqR2zr05CnbowYjVF2NXhWDzvKuJnARBeKu5AiNTmaO97A==}
 
-  hume@0.13.7:
-    resolution: {integrity: sha512-1+AzdAm/kud1lx/r506CAopv8P0riIuy9bBB/qWu+7I13UdtfH/vLe2EFAXfy+tOwo1z0qoazy0IST433na9tA==}
+  hume@0.13.8:
+    resolution: {integrity: sha512-ONYU/TbaPoFWk/1PmY3PH7iWaBWSfMidR6KFMws2Hnhn/AoQosRzS2oik3DTn/k47H3I68u2NzUhFkJG/KcAwQ==}
 
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
@@ -7874,7 +7874,7 @@ snapshots:
       - encoding
       - utf-8-validate
 
-  hume@0.13.7:
+  hume@0.13.8:
     dependencies:
       isomorphic-ws: 5.0.0(ws@8.18.3)
       node-fetch: 2.7.0
