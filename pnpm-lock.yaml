@@ -146,7 +146,7 @@ importers:
         version: 5.4.5
       vite:
         specifier: ^5.4.19
-        version: 5.4.19(@types/node@20.19.1)(terser@5.43.1)
+        version: 5.4.19(@types/node@20.19.17)(terser@5.43.1)
 
   examples/vite-app-embed:
     dependencies:
@@ -174,7 +174,7 @@ importers:
         version: 6.21.0(eslint@8.57.0)(typescript@5.4.5)
       '@vitejs/plugin-react':
         specifier: ^4.2.1
-        version: 4.3.1(vite@5.4.19(@types/node@20.19.1)(terser@5.43.1))
+        version: 4.3.1(vite@5.4.19(@types/node@20.19.17)(terser@5.43.1))
       eslint:
         specifier: ^8.55.0
         version: 8.57.0
@@ -189,7 +189,7 @@ importers:
         version: 5.4.5
       vite:
         specifier: ^5.4.19
-        version: 5.4.19(@types/node@20.19.1)(terser@5.43.1)
+        version: 5.4.19(@types/node@20.19.17)(terser@5.43.1)
 
   packages/embed:
     dependencies:
@@ -1805,9 +1805,6 @@ packages:
   '@types/node@20.14.2':
     resolution: {integrity: sha512-xyu6WAMVwv6AKFLB+e/7ySZVr/0zLCzOa7rSpq6jNwpqOrUbcACDWC+53d4n2QHOnDou0fbIsg8wZu/sxrnI4Q==}
 
-  '@types/node@20.19.1':
-    resolution: {integrity: sha512-jJD50LtlD2dodAEO653i3YF04NWak6jN3ky+Ri3Em3mGR39/glWiboM/IePaRbgwSfqM1TpGXfAg8ohn/4dTgA==}
-
   '@types/node@20.19.17':
     resolution: {integrity: sha512-gfehUI8N1z92kygssiuWvLiwcbOB3IRktR6hTDgJlXMYh5OvkPSRmgfoBUmfZt+vhwJtX7v1Yw4KvvAf7c5QKQ==}
 
@@ -2886,9 +2883,17 @@ packages:
     resolution: {integrity: sha512-CrWQNaEl1/6WeZoarcM9LHupTo3RpZO2Pdk1vktwzPiQTsJnAKJmm3TACKeG5UZbWDfaH2AbvYxzP96y0MT7fA==}
     engines: {node: '>=14'}
 
+  form-data-encoder@4.1.0:
+    resolution: {integrity: sha512-G6NsmEW15s0Uw9XnCg+33H3ViYRyiM0hMrMhhqQOR8NFc5GhYrI+6I3u7OTw7b91J2g8rtvMBZJDbcGb2YUniw==}
+    engines: {node: '>= 18'}
+
   form-data@4.0.0:
     resolution: {integrity: sha512-ETEklSGi5t0QMZuiXoA/Q6vcnxcLQP5vdugSpuAyi6SVGi2clPPp+xgEhuMaHC+zGgn31Kd235W35f7Hykkaww==}
     engines: {node: '>= 6'}
+
+  formdata-node@6.0.3:
+    resolution: {integrity: sha512-8e1++BCiTzUno9v5IZ2J6bv4RU+3UKDmqWUQD0MIMVCd9AdhWkO1gw57oo1mNEX1dMq2EGI+FbWz4B92pscSQg==}
+    engines: {node: '>= 18'}
 
   fraction.js@4.3.7:
     resolution: {integrity: sha512-ZsDfxO51wGAXREY55a7la9LScWpwv9RxIrYABrlvOFBlH/ShPnrtsXeuUIfXKKOVicNxQ+o8JTbJvjS4M89yew==}
@@ -3066,6 +3071,9 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  hume@0.11.4:
+    resolution: {integrity: sha512-DFS7qJhKWF3Cbos0cgiR6DLXYW17yJi8PpC0KSmtUqR2zr05CnbowYjVF2NXhWDzvKuJnARBeKu5AiNTmaO97A==}
 
   hume@0.13.7:
     resolution: {integrity: sha512-1+AzdAm/kud1lx/r506CAopv8P0riIuy9bBB/qWu+7I13UdtfH/vLe2EFAXfy+tOwo1z0qoazy0IST433na9tA==}
@@ -6237,11 +6245,6 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@20.19.1':
-    dependencies:
-      undici-types: 6.21.0
-    optional: true
-
   '@types/node@20.19.17':
     dependencies:
       undici-types: 6.21.0
@@ -6400,14 +6403,14 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitejs/plugin-react@4.3.1(vite@5.4.19(@types/node@20.19.1)(terser@5.43.1))':
+  '@vitejs/plugin-react@4.3.1(vite@5.4.19(@types/node@20.19.17)(terser@5.43.1))':
     dependencies:
       '@babel/core': 7.24.7
       '@babel/plugin-transform-react-jsx-self': 7.24.7(@babel/core@7.24.7)
       '@babel/plugin-transform-react-jsx-source': 7.24.7(@babel/core@7.24.7)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.2
-      vite: 5.4.19(@types/node@20.19.1)(terser@5.43.1)
+      vite: 5.4.19(@types/node@20.19.17)(terser@5.43.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -7658,11 +7661,15 @@ snapshots:
       cross-spawn: 7.0.3
       signal-exit: 4.1.0
 
+  form-data-encoder@4.1.0: {}
+
   form-data@4.0.0:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       mime-types: 2.1.35
+
+  formdata-node@6.0.3: {}
 
   fraction.js@4.3.7: {}
 
@@ -7849,6 +7856,23 @@ snapshots:
 
   human-signals@2.1.0:
     optional: true
+
+  hume@0.11.4:
+    dependencies:
+      form-data: 4.0.0
+      form-data-encoder: 4.1.0
+      formdata-node: 6.0.3
+      node-fetch: 2.7.0
+      qs: 6.14.0
+      readable-stream: 4.7.0
+      url-join: 4.0.1
+      uuid: 9.0.1
+      ws: 8.18.3
+      zod: 3.23.8
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
 
   hume@0.13.7:
     dependencies:
@@ -9777,13 +9801,13 @@ snapshots:
       fsevents: 2.3.3
       terser: 5.43.1
 
-  vite@5.4.19(@types/node@20.19.1)(terser@5.43.1):
+  vite@5.4.19(@types/node@20.19.17)(terser@5.43.1):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.3
       rollup: 4.40.1
     optionalDependencies:
-      '@types/node': 20.19.1
+      '@types/node': 20.19.17
       fsevents: 2.3.3
       terser: 5.43.1
 
