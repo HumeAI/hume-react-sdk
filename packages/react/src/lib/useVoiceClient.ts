@@ -161,7 +161,7 @@ export const useVoiceClient = (props: {
         const socket = hume.empathicVoice.chat.connect({
           ...config,
           reconnectAttempts: 0,
-          ...(connectSettings && { session_settings: connectSettings }),
+          ...(connectSettings && { sessionSettings: connectSettings }),
         });
 
         client.current = socket;
