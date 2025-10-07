@@ -24,9 +24,8 @@ export enum VoiceReadyState {
   OPEN = 'open',
   CLOSED = 'closed',
 }
-
-type SessionSettingsOnConnect = Omit<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'type'>
-type SessionSettingsPostConnect = Pick<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'type'>
+type SessionSettingsOnConnect = Omit<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'tools' | 'metadata' | 'type'>
+type SessionSettingsPostConnect = Pick<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'tools' | 'metadata' | 'type'>
 /**
  * Split the properties on a session settings message by when they can be sent.
  *
@@ -45,13 +44,12 @@ const splitSessionSettings = (
     return {}
   }
 
-  const { builtinTools, ...onConnect } = sessionSettings;
+  const { builtinTools, tools, metadata, type, ...onConnect } = sessionSettings;
   if (builtinTools) {
     return {
       onConnect,
       postConnect: {
-        type: 'session_settings',
-        builtinTools,
+        builtinTools, tools, metadata, type
       },
     }
   }
