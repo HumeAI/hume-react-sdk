@@ -25,6 +25,39 @@ export enum VoiceReadyState {
   CLOSED = 'closed',
 }
 
+type SessionSettingsOnConnect = Omit<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'type'>
+type SessionSettingsPostConnect = Pick<Hume.empathicVoice.SessionSettings, 'builtinTools' | 'type'>
+/**
+ * Split the properties on a session settings message by when they can be sent.
+ *
+ * The Hume API supports sending *most* but not *all* properties of the session settings 
+ * as query params on the websocket connection. Tools-related settings like `builtinTools` 
+ * must be sent as a separate message after the connection is established.
+ * 
+ */
+const splitSessionSettings = (
+  sessionSettings?: Hume.empathicVoice.SessionSettings,
+): {
+  onConnect?: SessionSettingsOnConnect;
+  postConnect?: SessionSettingsPostConnect;
+} => {
+  if (!sessionSettings) {
+    return {}
+  }
+
+  const { builtinTools, ...onConnect } = sessionSettings;
+  if (builtinTools) {
+    return {
+      onConnect,
+      postConnect: {
+        type: 'session_settings',
+        builtinTools,
+      },
+    }
+  }
+  return { onConnect }
+};
+
 export type ToolCallHandler = (
   // message will always be a tool call message where toolType === 'function'
   message: Simplify<
@@ -104,6 +137,8 @@ export const useVoiceClient = (props: {
       const signal = controller.signal;
       connectAbortController.current = controller;
 
+      const { onConnect: connectSettings, postConnect: postConnectSettings } = splitSessionSettings(sessionSettings);
+
       return new Promise<VoiceReadyState>((resolve, reject) => {
         if (signal.aborted) {
           reject(new Error('Connection attempt has already been aborted'));
@@ -114,18 +149,19 @@ export const useVoiceClient = (props: {
         const hume = new HumeClient(
           config.auth.type === 'apiKey'
             ? {
-                apiKey: config.auth.value,
-                environment: hostname,
-              }
+              apiKey: config.auth.value,
+              environment: hostname,
+            }
             : {
-                accessToken: config.auth.value,
-                environment: hostname,
-              },
+              accessToken: config.auth.value,
+              environment: hostname,
+            },
         );
 
         const socket = hume.empathicVoice.chat.connect({
           ...config,
           reconnectAttempts: 0,
+          ...(connectSettings && { session_settings: connectSettings }),
         });
 
         client.current = socket;
@@ -155,8 +191,8 @@ export const useVoiceClient = (props: {
             onOpen.current?.();
             setReadyState(VoiceReadyState.OPEN);
             signal.removeEventListener('abort', abortHandler);
-            if (sessionSettings) {
-              socket.sendSessionSettings(sessionSettings);
+            if (postConnectSettings) {
+              socket.sendSessionSettings(postConnectSettings);
             }
             resolve(VoiceReadyState.OPEN);
           }
