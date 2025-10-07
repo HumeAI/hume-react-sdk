@@ -56,7 +56,7 @@ const getSessionSettingsOnConnect = (
   if (builtinTools || tools || metadata) {
     return {
       onConnect,
-      postConnect: sessionSettings
+      postConnect: sessionSettings,
     };
   }
   return { onConnect };
@@ -154,13 +154,13 @@ export const useVoiceClient = (props: {
         const hume = new HumeClient(
           config.auth.type === 'apiKey'
             ? {
-              apiKey: config.auth.value,
-              environment: hostname,
-            }
+                apiKey: config.auth.value,
+                environment: hostname,
+              }
             : {
-              accessToken: config.auth.value,
-              environment: hostname,
-            },
+                accessToken: config.auth.value,
+                environment: hostname,
+              },
         );
 
         const socket = hume.empathicVoice.chat.connect({
