@@ -1,6 +1,6 @@
 {
   "name": "@humeai/voice-react",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -27,7 +27,7 @@
   "license": "ISC",
   "dependencies": {
     "date-fns": "^3.6.0",
-    "hume": "0.13.8",
+    "hume": "0.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "type-fest": "^4.26.0",
