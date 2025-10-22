@@ -149,12 +149,26 @@ export const useSoundPlayer = (props: {
     };
   }, []);
 
-  const initPlayer = useCallback(async () => {
+  const initPlayer = useCallback(async (speakerDeviceId?: string) => {
     isWorkletActive.current = true;
 
     try {
       const initAudioContext = new AudioContext();
       audioContext.current = initAudioContext;
+
+      // Set the speaker device if specified and supported
+      if (speakerDeviceId && 'setSinkId' in initAudioContext) {
+        try {
+          // TypeScript doesn't recognize setSinkId on AudioContext yet, so we need to cast
+          await (initAudioContext as AudioContext & { setSinkId: (deviceId: string) => Promise<void> }).setSinkId(speakerDeviceId);
+        } catch (e) {
+          onError.current(
+            `Failed to set speaker device: ${e instanceof Error ? e.message : 'Unknown error'}`,
+            'audio_player_initialization_failure',
+          );
+          // Continue initialization even if setSinkId fails
+        }
+      }
 
       // Use AnalyserNode to get fft frequency data for visualizations
       const analyser = initAudioContext.createAnalyser();
@@ -242,10 +256,10 @@ export const useSoundPlayer = (props: {
         isInitialized.current = true;
       }
     } catch (e) {
-      onError.current(
-        'Failed to initialize audio player',
-        'audio_player_initialization_failure',
-      );
+        onError.current(
+          'Failed to initialize audio player',
+          'audio_player_initialization_failure',
+        );
     }
   }, [props.enableAudioWorklet]);
 

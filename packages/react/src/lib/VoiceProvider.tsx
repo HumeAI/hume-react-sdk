@@ -503,7 +503,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
 
   const connect = useCallback(
     async (options: ConnectOptions) => {
-      const { audioConstraints, sessionSettings, ...socketConfig } = options;
+      const { audioConstraints, sessionSettings, speakerDeviceId, ...socketConfig } = options;
       if (isConnectingRef.current || status.value === 'connected') {
         console.warn(
           'Already connected or connecting to a chat. Ignoring duplicate connection attempt.',
@@ -546,7 +546,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
       try {
-        await player.initPlayer();
+        await player.initPlayer(speakerDeviceId);
       } catch (e) {
         resourceStatusRef.current.audioPlayer = 'disconnected';
         updateError({
