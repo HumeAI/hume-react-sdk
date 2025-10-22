@@ -322,8 +322,8 @@ export type ConnectOptions = {
   audioConstraints?: AudioConstraints;
   /** Session settings to be sent immediately once the connection to EVI is established. See documentation for details: https://dev.hume.ai/docs/empathic-voice-interface-evi/configuration/session-settings */
   sessionSettings?: Hume.empathicVoice.SessionSettings;
-  /** Device ID of the speaker/audio output to use for playback. Uses the default audio output if not specified. */
-  speakerDeviceId?: string;
+  /** Device IDs for microphone and speaker selection */
+  devices?: DeviceOptions;
 };
 ```
 
@@ -337,8 +337,16 @@ export type AudioConstraints = {
   noiseSuppression?: boolean;
   /** Automatically adjust microphone gain (if supported). Defaults to `true`. */
   autoGainControl?: boolean;
+};
+
+### `DeviceOptions`
+
+```ts
+export type DeviceOptions = {
   /** Device ID of the microphone/audio input to use. Uses the default microphone if not specified. */
-  deviceId?: string;
+  microphoneDeviceId?: string;
+  /** Device ID of the speaker/audio output to use for playback. Uses the default audio output if not specified. */
+  speakerDeviceId?: string;
 };
 ```
 
