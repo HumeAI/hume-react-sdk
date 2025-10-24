@@ -503,7 +503,8 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
 
   const connect = useCallback(
     async (options: ConnectOptions) => {
-      const { audioConstraints, sessionSettings, devices, ...socketConfig } = options;
+      const { audioConstraints, sessionSettings, devices, ...socketConfig } =
+        options;
       if (isConnectingRef.current || status.value === 'connected') {
         console.warn(
           'Already connected or connecting to a chat. Ignoring duplicate connection attempt.',
@@ -523,7 +524,9 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       try {
         const micConstraints = {
           ...audioConstraints,
-          ...(devices?.microphoneDeviceId && { deviceId: devices.microphoneDeviceId }),
+          ...(devices?.microphoneDeviceId && {
+            deviceId: devices.microphoneDeviceId,
+          }),
         };
         stream = await getStream(micConstraints);
       } catch (e) {
