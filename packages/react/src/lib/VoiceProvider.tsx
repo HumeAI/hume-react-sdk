@@ -353,6 +353,17 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         toolStatus,
       ],
     ),
+    onSessionSettings: useCallback(
+      (sessionSettings: Hume.empathicVoice.SessionSettings) => {
+        if (checkIsDisconnecting() || checkIsDisconnected()) {
+          // disconnection in progress, and resources are being cleaned up.
+          // ignore the message
+          return;
+        }
+        messageStore.createSessionSettingsMessage(sessionSettings);
+      },
+      [checkIsDisconnected, checkIsDisconnecting, messageStore],
+    ),
     onClientError,
     onToolCallError: useCallback(
       (message: string, err?: Error) => {

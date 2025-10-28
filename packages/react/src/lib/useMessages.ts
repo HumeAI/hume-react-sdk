@@ -1,3 +1,4 @@
+import type { Hume } from 'hume';
 import type { CloseEvent } from 'hume/core';
 import { useCallback, useState } from 'react';
 
@@ -48,6 +49,21 @@ export const useMessages = ({
       ]),
     );
   }, []);
+
+  const createSessionSettingsMessage = useCallback(
+    (sessionSettings: Hume.empathicVoice.SessionSettings) => {
+      setMessages((prev) =>
+        prev.concat([
+          {
+            type: 'session_settings',
+            sessionSettings,
+            receivedAt: new Date(),
+          },
+        ]),
+      );
+    },
+    [],
+  );
 
   const createDisconnectMessage = useCallback((event: CloseEvent) => {
     setMessages((prev) =>
@@ -221,6 +237,7 @@ export const useMessages = ({
   return {
     createConnectMessage,
     createDisconnectMessage,
+    createSessionSettingsMessage,
     onMessage,
     onPlayAudio,
     clearMessages,
