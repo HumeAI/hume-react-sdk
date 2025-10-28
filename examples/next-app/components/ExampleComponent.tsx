@@ -27,9 +27,10 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
 
   useEffect(() => {
     const getDevices = async () => {
+      let stream: MediaStream | null = null;
       try {
         // Request permission first
-        await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         // Get all devices
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -53,6 +54,11 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
       } catch {
         // eslint-disable-next-line no-console
         console.warn('Unable to enumerate devices');
+      } finally {
+        // Close the microphone stream now that we have the device IDs
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
       }
     };
 
