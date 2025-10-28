@@ -194,8 +194,8 @@ importers:
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.14.1
-        version: 0.14.1
+        specifier: 0.15.0
+        version: 0.15.0
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.14.1
-        version: 0.14.1
+        specifier: ^0.15.0
+        version: 0.15.0
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.14.1
-        version: 0.14.1
+        specifier: 0.15.0
+        version: 0.15.0
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3075,8 +3075,9 @@ packages:
   hume@0.11.4:
     resolution: {integrity: sha512-DFS7qJhKWF3Cbos0cgiR6DLXYW17yJi8PpC0KSmtUqR2zr05CnbowYjVF2NXhWDzvKuJnARBeKu5AiNTmaO97A==}
 
-  hume@0.14.1:
-    resolution: {integrity: sha512-ko2nD/3aiBRNVcQynPdZPOahQDQJSnT6ALqa5z5yunoWyGCCqMuRzOsr5RU180MQ4sWhyYVw4h0cHPPUCYoIBQ==}
+  hume@0.15.0:
+    resolution: {integrity: sha512-q8WRoaNCukg7b3ZVpA71bzI2AJx3t2g6OEkeTswU8+V/nxMvC/kFqeufQmVJ9FeG+auZcgOSyVpGB0Em8VE8cA==}
+    engines: {node: '>=18.0.0'}
 
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
@@ -3254,11 +3255,6 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
-
-  isomorphic-ws@5.0.0:
-    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
-    peerDependencies:
-      ws: '*'
 
   istanbul-lib-coverage@3.2.2:
     resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
@@ -7874,19 +7870,13 @@ snapshots:
       - encoding
       - utf-8-validate
 
-  hume@0.14.1:
+  hume@0.15.0:
     dependencies:
-      isomorphic-ws: 5.0.0(ws@8.18.3)
-      node-fetch: 2.7.0
-      qs: 6.14.0
-      readable-stream: 4.7.0
-      url-join: 4.0.1
       uuid: 9.0.1
       ws: 8.18.3
       zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
-      - encoding
       - utf-8-validate
 
   iconv-lite@0.6.3:
@@ -8052,10 +8042,6 @@ snapshots:
   isarray@2.0.5: {}
 
   isexe@2.0.0: {}
-
-  isomorphic-ws@5.0.0(ws@8.18.3):
-    dependencies:
-      ws: 8.18.3
 
   istanbul-lib-coverage@3.2.2:
     optional: true
