@@ -58,7 +58,8 @@ export const parseMessageData = async (
     };
   }
 
-  const parseResponse = HumeSerialization.empathicVoice.SubscribeEvent.parse(data);
+  const parseResponse =
+    HumeSerialization.empathicVoice.SubscribeEvent.parse(data);
 
   if (!parseResponse.ok) {
     return {

@@ -10,7 +10,6 @@ import type {
 } from '../models/messages';
 import { keepLastN } from '../utils';
 
-
 export const useMessages = ({
   sendMessageToParent,
   messageHistoryLimit,

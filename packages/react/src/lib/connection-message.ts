@@ -1,6 +1,8 @@
-import { type Hume } from "hume";
+import { type Hume } from 'hume';
 
-export type CloseEvent = Parameters<NonNullable<Hume.empathicVoice.chat.ChatSocket.EventHandlers['close']>>[0];
+export type CloseEvent = Parameters<
+  NonNullable<Hume.empathicVoice.chat.ChatSocket.EventHandlers['close']>
+>[0];
 
 export type ConnectionMessage =
   | {
@@ -13,5 +15,3 @@ export type ConnectionMessage =
       reason: CloseEvent['reason'];
       receivedAt: Date;
     };
-    
-

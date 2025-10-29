@@ -15,7 +15,6 @@ type UserInterruption = Hume.empathicVoice.UserInterruption;
 type UserMessage = Hume.empathicVoice.UserMessage;
 type WebSocketError = Hume.empathicVoice.WebSocketError;
 
-
 type WithReceivedAt<T> = T & { receivedAt: Date };
 
 export type AssistantEndMessage = WithReceivedAt<AssistantEnd>;
