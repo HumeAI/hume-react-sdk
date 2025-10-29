@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import type { ConnectionMessage, CloseEvent } from './connection-message';
+import type { CloseEvent, ConnectionMessage } from './connection-message';
 import type {
   AssistantProsodyMessage,
   AssistantTranscriptMessage,
