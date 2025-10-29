@@ -2,15 +2,16 @@ import type { RenderHookResult } from '@testing-library/react-hooks';
 import { act, renderHook } from '@testing-library/react-hooks';
 import { fromPartial } from '@total-typescript/shoehorn';
 import type { Hume } from 'hume';
-import type { CloseEvent } from 'hume/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type {CloseEvent} from './connection-message'
 import { useMessages } from './useMessages'; // adjust the import path as needed
 import type {
   AssistantTranscriptMessage,
   JSONMessage,
   UserTranscriptMessage,
 } from '../models/messages';
+
 
 const MODEL_CONFIG: Hume.empathicVoice.Inference = {
   prosody: {

@@ -1,7 +1,6 @@
-import type { CloseEvent } from 'hume/core';
 import { useCallback, useState } from 'react';
 
-import type { ConnectionMessage } from './connection-message';
+import type { ConnectionMessage, CloseEvent } from './connection-message';
 import type {
   AssistantProsodyMessage,
   AssistantTranscriptMessage,
@@ -10,6 +9,7 @@ import type {
   UserTranscriptMessage,
 } from '../models/messages';
 import { keepLastN } from '../utils';
+
 
 export const useMessages = ({
   sendMessageToParent,
