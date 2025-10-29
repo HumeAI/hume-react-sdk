@@ -5,5 +5,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     watch: false,
+    server: {
+      deps: {
+        inline: ['hume'],
+      },
+    },
+  },
+  resolve: {
+    conditions: ['import', 'module', 'browser', 'default'],
   },
 });
