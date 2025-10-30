@@ -31,11 +31,10 @@
  └───────────────────────────┘                                           
                                                                        */
 import { type Hume } from 'hume';
-import {
-  AssistantMessage,
-  UserMessage,
-} from 'hume/serialization/resources/empathicVoice/index.js';
+import * as serialization from 'hume/serialization';
 import { z } from 'zod';
+
+const { AssistantMessage, UserMessage } = serialization.empathicVoice;
 
 import { AuthStrategySchema } from './auth';
 

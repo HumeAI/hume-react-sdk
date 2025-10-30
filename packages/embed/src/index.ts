@@ -11,27 +11,24 @@ export {
   type FrameToClientAction,
   type WindowDimensions,
 } from './lib/embed-messages';
+import { type Hume } from 'hume';
 
-export type {
-  SubscribeEvent,
-  AssistantMessage,
-  UserMessage,
-  ToolCallMessage,
-  ToolResponseMessage,
-  ToolErrorMessage,
-  ChatMetadata,
-} from 'hume/api/resources/empathicVoice';
+export type AssistantTranscriptMessage = Hume.empathicVoice.AssistantMessage;
+export type JSONMessage = Hume.empathicVoice.SubscribeEvent;
+export type UserTranscriptMessage = Hume.empathicVoice.UserMessage;
+export type EmotionScores = Hume.empathicVoice.EmotionScores;
+export type ToolCall = Hume.empathicVoice.ToolCallMessage;
+export type ToolResponse = Hume.empathicVoice.ToolResponseMessage;
+export type ToolError = Hume.empathicVoice.ToolErrorMessage;
+export type ChatMetadataMessage = Hume.empathicVoice.ChatMetadata;
 
-export type {
-  AssistantMessage as AssistantTranscriptMessage,
-  SubscribeEvent as JSONMessage,
-  UserMessage as UserTranscriptMessage,
-  EmotionScores,
-  ToolCallMessage as ToolCall,
-  ToolResponseMessage as ToolResponse,
-  ToolErrorMessage as ToolError,
-  ChatMetadata as ChatMetadataMessage,
-} from 'hume/api/resources/empathicVoice';
+export type SubscribeEvent = Hume.empathicVoice.SubscribeEvent;
+export type AssistantMessage = Hume.empathicVoice.AssistantMessage;
+export type UserMessage = Hume.empathicVoice.UserMessage;
+export type ToolCallMessage = Hume.empathicVoice.ToolCallMessage;
+export type ToolResponseMessage = Hume.empathicVoice.ToolResponseMessage;
+export type ToolErrorMessage = Hume.empathicVoice.ToolErrorMessage;
+export type ChatMetadata = Hume.empathicVoice.ChatMetadata;
 
 export { LanguageModelOption } from './types';
 export { type SocketConfig } from './lib/embed-messages';

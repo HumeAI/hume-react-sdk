@@ -1,19 +1,19 @@
-import type {
-  AssistantEnd,
-  AssistantMessage,
-  AssistantProsody,
-  AudioInput,
-  AudioOutput,
-  ChatMetadata,
-  JsonMessage,
-  ToolCallMessage,
-  ToolErrorMessage,
-  ToolResponseMessage,
-  UserInterruption,
-  UserMessage,
-  WebSocketError,
-} from 'hume/api/resources/empathicVoice';
+import { type Hume } from 'hume';
 import z from 'zod';
+
+type AssistantEnd = Hume.empathicVoice.AssistantEnd;
+type AssistantMessage = Hume.empathicVoice.AssistantMessage;
+type AssistantProsody = Hume.empathicVoice.AssistantProsody;
+type AudioInput = Hume.empathicVoice.AudioInput;
+type AudioOutput = Hume.empathicVoice.AudioOutput;
+type ChatMetadata = Hume.empathicVoice.ChatMetadata;
+type JsonMessage = Hume.empathicVoice.JsonMessage;
+type ToolCallMessage = Hume.empathicVoice.ToolCallMessage;
+type ToolErrorMessage = Hume.empathicVoice.ToolErrorMessage;
+type ToolResponseMessage = Hume.empathicVoice.ToolResponseMessage;
+type UserInterruption = Hume.empathicVoice.UserInterruption;
+type UserMessage = Hume.empathicVoice.UserMessage;
+type WebSocketError = Hume.empathicVoice.WebSocketError;
 
 type WithReceivedAt<T> = T & { receivedAt: Date };
 
