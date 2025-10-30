@@ -194,8 +194,8 @@ importers:
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.15.1
-        version: 0.15.1
+        specifier: 0.15.2
+        version: 0.15.2
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.15.1
-        version: 0.15.1
+        specifier: ^0.15.2
+        version: 0.15.2
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.15.1
-        version: 0.15.1
+        specifier: 0.15.2
+        version: 0.15.2
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3075,8 +3075,8 @@ packages:
   hume@0.11.4:
     resolution: {integrity: sha512-DFS7qJhKWF3Cbos0cgiR6DLXYW17yJi8PpC0KSmtUqR2zr05CnbowYjVF2NXhWDzvKuJnARBeKu5AiNTmaO97A==}
 
-  hume@0.15.1:
-    resolution: {integrity: sha512-5qtqFXddv3gn3Riad7IGcCzUSpQEwE03EEHcbpqJzi8Pvv+KtRi3kUIYtRqLD+wl2n3n3cDRMNNbx9LEqqXI8Q==}
+  hume@0.15.2:
+    resolution: {integrity: sha512-n7L78Md3n0ED2wQ/u9TqEY2gbD93SmKzX7nOL9vmqSLDtwYDZwT2mqNXoKiuACLgZ5J2VFU8W0RvsqNvQTyoJg==}
     engines: {node: '>=18.0.0'}
 
   iconv-lite@0.6.3:
@@ -7870,7 +7870,7 @@ snapshots:
       - encoding
       - utf-8-validate
 
-  hume@0.15.1:
+  hume@0.15.2:
     dependencies:
       uuid: 9.0.1
       ws: 8.18.3
