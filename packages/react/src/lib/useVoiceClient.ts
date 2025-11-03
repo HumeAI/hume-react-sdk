@@ -88,6 +88,9 @@ export type ToolCallHandler = (
 export const useVoiceClient = (props: {
   onAudioMessage?: (message: AudioOutputMessage) => void;
   onMessage?: (message: JSONMessage) => void;
+  onSessionSettings?: (
+    sessionSettings: Hume.empathicVoice.SessionSettings,
+  ) => void;
   onToolCall?: ToolCallHandler;
   onToolCallError?: (message: string, error?: Error) => void;
   onClientError?: (message: string, error?: Error) => void;
@@ -111,6 +114,11 @@ export const useVoiceClient = (props: {
 
   const onMessage = useRef<typeof props.onMessage>(props.onMessage);
   onMessage.current = props.onMessage;
+
+  const onSessionSettings = useRef<typeof props.onSessionSettings>(
+    props.onSessionSettings,
+  );
+  onSessionSettings.current = props.onSessionSettings;
 
   const onToolCall = useRef<typeof props.onToolCall>(props.onToolCall);
   onToolCall.current = props.onToolCall;
@@ -198,6 +206,7 @@ export const useVoiceClient = (props: {
             signal.removeEventListener('abort', abortHandler);
             if (postConnectSettings) {
               socket.sendSessionSettings(postConnectSettings);
+              onSessionSettings.current?.(postConnectSettings);
             }
             resolve(VoiceReadyState.OPEN);
           }
@@ -320,6 +329,7 @@ export const useVoiceClient = (props: {
         return;
       }
       client.current?.sendSessionSettings(sessionSettings);
+      onSessionSettings.current?.(sessionSettings);
     },
     [readyState],
   );

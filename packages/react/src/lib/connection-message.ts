@@ -1,4 +1,4 @@
-import { type Hume } from 'hume';
+import type { Hume } from 'hume';
 
 export type CloseEvent = Parameters<
   NonNullable<Hume.empathicVoice.chat.ChatSocket.EventHandlers['close']>
@@ -13,5 +13,10 @@ export type ConnectionMessage =
       type: 'socket_disconnected';
       code: CloseEvent['code'];
       reason: CloseEvent['reason'];
+      receivedAt: Date;
+    }
+  | {
+      type: 'session_settings';
+      sessionSettings: Hume.empathicVoice.SessionSettings;
       receivedAt: Date;
     };
