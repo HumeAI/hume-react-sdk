@@ -1,5 +1,4 @@
 import type { Hume } from 'hume';
-
 import { useCallback, useState } from 'react';
 
 import type { CloseEvent, ConnectionMessage } from './connection-message';
