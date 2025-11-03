@@ -1,8 +1,8 @@
 import type { Hume } from 'hume';
-import type { CloseEvent } from 'hume/core';
+
 import { useCallback, useState } from 'react';
 
-import type { ConnectionMessage } from './connection-message';
+import type { CloseEvent, ConnectionMessage } from './connection-message';
 import type {
   AssistantProsodyMessage,
   AssistantTranscriptMessage,
