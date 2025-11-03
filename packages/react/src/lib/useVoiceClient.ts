@@ -24,6 +24,43 @@ export enum VoiceReadyState {
   OPEN = 'open',
   CLOSED = 'closed',
 }
+type SessionSettingsOnConnect = Omit<
+  Hume.empathicVoice.SessionSettings,
+  'builtinTools' | 'tools' | 'metadata' | 'type'
+>;
+type SessionSettingsPostConnect = Pick<
+  Hume.empathicVoice.SessionSettings,
+  'builtinTools' | 'tools' | 'metadata' | 'type'
+>;
+/**
+ * Some session settings can be sent as query params when the websocket connects.
+ * This is preferred because it eliminates a race condition of the session settings being applied slightly after the conversation starts.
+ *
+ * `tools` and `builtinTools` are not yet supported in the query string. We can remove
+ * this and send everything in the query string once this changes. For the time being
+ * we send as many settings as possible in the query string, and then a complete session
+ * settings message shortly after.
+ *
+ */
+const getSessionSettingsOnConnect = (
+  sessionSettings?: Hume.empathicVoice.SessionSettings,
+): {
+  onConnect?: SessionSettingsOnConnect;
+  postConnect?: SessionSettingsPostConnect;
+} => {
+  if (!sessionSettings) {
+    return {};
+  }
+
+  const { builtinTools, tools, metadata, type, ...onConnect } = sessionSettings;
+  if (builtinTools || tools || metadata) {
+    return {
+      onConnect,
+      postConnect: sessionSettings,
+    };
+  }
+  return { onConnect };
+};
 
 export type ToolCallHandler = (
   // message will always be a tool call message where toolType === 'function'
@@ -104,6 +141,9 @@ export const useVoiceClient = (props: {
       const signal = controller.signal;
       connectAbortController.current = controller;
 
+      const { onConnect: connectSettings, postConnect: postConnectSettings } =
+        getSessionSettingsOnConnect(sessionSettings);
+
       return new Promise<VoiceReadyState>((resolve, reject) => {
         if (signal.aborted) {
           reject(new Error('Connection attempt has already been aborted'));
@@ -126,6 +166,7 @@ export const useVoiceClient = (props: {
         const socket = hume.empathicVoice.chat.connect({
           ...config,
           reconnectAttempts: 0,
+          ...(connectSettings && { sessionSettings: connectSettings }),
         });
 
         client.current = socket;
@@ -155,8 +196,8 @@ export const useVoiceClient = (props: {
             onOpen.current?.();
             setReadyState(VoiceReadyState.OPEN);
             signal.removeEventListener('abort', abortHandler);
-            if (sessionSettings) {
-              socket.sendSessionSettings(sessionSettings);
+            if (postConnectSettings) {
+              socket.sendSessionSettings(postConnectSettings);
             }
             resolve(VoiceReadyState.OPEN);
           }

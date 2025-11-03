@@ -149,105 +149,126 @@ export const useSoundPlayer = (props: {
     };
   }, []);
 
-  const initPlayer = useCallback(async () => {
-    isWorkletActive.current = true;
+  const initPlayer = useCallback(
+    async (speakerDeviceId?: string) => {
+      isWorkletActive.current = true;
 
-    try {
-      const initAudioContext = new AudioContext();
-      audioContext.current = initAudioContext;
+      try {
+        const initAudioContext = new AudioContext();
+        audioContext.current = initAudioContext;
 
-      // Use AnalyserNode to get fft frequency data for visualizations
-      const analyser = initAudioContext.createAnalyser();
-      // Use GainNode to adjust volume
-      const gain = initAudioContext.createGain();
-
-      analyser.fftSize = 2048; // Must be a power of 2
-      analyser.connect(gain);
-      gain.connect(initAudioContext.destination);
-
-      analyserNode.current = analyser;
-      gainNode.current = gain;
-
-      if (props.enableAudioWorklet) {
-        const isWorkletLoaded = await loadAudioWorklet(initAudioContext);
-        if (!isWorkletLoaded) {
-          onError.current(
-            'Failed to load audio worklet',
-            'audio_worklet_load_failure',
-          );
-          return;
+        // Set the speaker device if specified and supported
+        if (speakerDeviceId && 'setSinkId' in initAudioContext) {
+          try {
+            // TypeScript doesn't recognize setSinkId on AudioContext yet, so we need to cast
+            await (
+              initAudioContext as AudioContext & {
+                setSinkId: (deviceId: string) => Promise<void>;
+              }
+            ).setSinkId(speakerDeviceId);
+          } catch (e) {
+            onError.current(
+              `Failed to set speaker device: ${e instanceof Error ? e.message : 'Unknown error'}`,
+              'audio_player_initialization_failure',
+            );
+            // Continue initialization even if setSinkId fails
+          }
         }
 
-        const worklet = new AudioWorkletNode(
-          initAudioContext,
-          'audio-processor',
-        );
-        worklet.connect(analyser);
-        workletNode.current = worklet;
+        // Use AnalyserNode to get fft frequency data for visualizations
+        const analyser = initAudioContext.createAnalyser();
+        // Use GainNode to adjust volume
+        const gain = initAudioContext.createGain();
 
-        worklet.port.onmessage = (e: MessageEvent) => {
-          const playingEvent = z
-            .object({
-              type: z.literal('start_clip'),
-              id: z.string(),
-              index: z.number(),
-            })
-            .safeParse(e.data);
+        analyser.fftSize = 2048; // Must be a power of 2
+        analyser.connect(gain);
+        gain.connect(initAudioContext.destination);
 
-          if (playingEvent.success) {
-            if (playingEvent.data.index === 0) {
-              onPlayAudio.current(playingEvent.data.id);
-            }
-            setIsPlaying(true);
+        analyserNode.current = analyser;
+        gainNode.current = gain;
+
+        if (props.enableAudioWorklet) {
+          const isWorkletLoaded = await loadAudioWorklet(initAudioContext);
+          if (!isWorkletLoaded) {
+            onError.current(
+              'Failed to load audio worklet',
+              'audio_worklet_load_failure',
+            );
+            return;
           }
 
-          const endedEvent = z
-            .object({ type: z.literal('ended') })
-            .safeParse(e.data);
-          if (endedEvent.success) {
-            setIsPlaying(false);
-            onStopAudio.current('stream');
-          }
-
-          const queueLengthEvent = z
-            .object({ type: z.literal('queueLength'), length: z.number() })
-            .safeParse(e.data);
-          if (queueLengthEvent.success) {
-            if (queueLengthEvent.data.length === 0) {
-              setIsPlaying(false);
-            }
-            setQueueLength(queueLengthEvent.data.length);
-          }
-
-          const closedEvent = z
-            .object({ type: z.literal('worklet_closed') })
-            .safeParse(e.data);
-          if (closedEvent.success) {
-            isWorkletActive.current = false;
-          }
-        };
-
-        frequencyDataIntervalId.current = window.setInterval(() => {
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          analyser.getByteFrequencyData(dataArray);
-
-          const barkFrequencies = convertLinearFrequenciesToBark(
-            dataArray,
-            initAudioContext.sampleRate,
+          const worklet = new AudioWorkletNode(
+            initAudioContext,
+            'audio-processor',
           );
-          setFft(() => barkFrequencies);
-        }, 5);
-        isInitialized.current = true;
-      } else {
-        isInitialized.current = true;
+          worklet.connect(analyser);
+          workletNode.current = worklet;
+
+          worklet.port.onmessage = (e: MessageEvent) => {
+            const playingEvent = z
+              .object({
+                type: z.literal('start_clip'),
+                id: z.string(),
+                index: z.number(),
+              })
+              .safeParse(e.data);
+
+            if (playingEvent.success) {
+              if (playingEvent.data.index === 0) {
+                onPlayAudio.current(playingEvent.data.id);
+              }
+              setIsPlaying(true);
+            }
+
+            const endedEvent = z
+              .object({ type: z.literal('ended') })
+              .safeParse(e.data);
+            if (endedEvent.success) {
+              setIsPlaying(false);
+              onStopAudio.current('stream');
+            }
+
+            const queueLengthEvent = z
+              .object({ type: z.literal('queueLength'), length: z.number() })
+              .safeParse(e.data);
+            if (queueLengthEvent.success) {
+              if (queueLengthEvent.data.length === 0) {
+                setIsPlaying(false);
+              }
+              setQueueLength(queueLengthEvent.data.length);
+            }
+
+            const closedEvent = z
+              .object({ type: z.literal('worklet_closed') })
+              .safeParse(e.data);
+            if (closedEvent.success) {
+              isWorkletActive.current = false;
+            }
+          };
+
+          frequencyDataIntervalId.current = window.setInterval(() => {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            const barkFrequencies = convertLinearFrequenciesToBark(
+              dataArray,
+              initAudioContext.sampleRate,
+            );
+            setFft(() => barkFrequencies);
+          }, 5);
+          isInitialized.current = true;
+        } else {
+          isInitialized.current = true;
+        }
+      } catch (e) {
+        onError.current(
+          'Failed to initialize audio player',
+          'audio_player_initialization_failure',
+        );
       }
-    } catch (e) {
-      onError.current(
-        'Failed to initialize audio player',
-        'audio_player_initialization_failure',
-      );
-    }
-  }, [props.enableAudioWorklet]);
+    },
+    [props.enableAudioWorklet],
+  );
 
   const convertToAudioBuffer = useCallback(
     async (message: AudioOutputMessage) => {

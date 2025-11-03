@@ -1,12 +1,69 @@
 'use client';
 
 import { useVoice } from '@humeai/voice-react';
+import { useEffect, useState } from 'react';
 import { match } from 'ts-pattern';
 
 import { ChatConnected } from '@/components/ChatConnected';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/Select';
 
 export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
   const { connect, disconnect, status, callDurationTimestamp } = useVoice();
+
+  const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>(
+    [],
+  );
+  const [audioOutputDevices, setAudioOutputDevices] = useState<
+    MediaDeviceInfo[]
+  >([]);
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>('');
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('');
+
+  useEffect(() => {
+    const getDevices = async () => {
+      let stream: MediaStream | null = null;
+      try {
+        // Request permission first
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Get all devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(
+          (device) => device.kind === 'audioinput',
+        );
+        const audioOutputs = devices.filter(
+          (device) => device.kind === 'audiooutput',
+        );
+
+        setAudioInputDevices(audioInputs);
+        setAudioOutputDevices(audioOutputs);
+
+        // Set defaults to first device
+        if (audioInputs.length > 0 && !selectedMicrophoneId) {
+          setSelectedMicrophoneId(audioInputs[0].deviceId);
+        }
+        if (audioOutputs.length > 0 && !selectedSpeakerId) {
+          setSelectedSpeakerId(audioOutputs[0].deviceId);
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.warn('Unable to enumerate devices');
+      } finally {
+        // Close the microphone stream now that we have the device IDs
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      }
+    };
+
+    void getDevices();
+  }, [selectedMicrophoneId, selectedSpeakerId]);
 
   const connectArgs = {
     auth: {
@@ -19,7 +76,58 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
       type: 'session_settings' as const,
       builtinTools: [{ name: 'web_search' as const }],
     },
+    devices: {
+      microphoneDeviceId: selectedMicrophoneId,
+      speakerDeviceId: selectedSpeakerId,
+    },
   };
+
+  const deviceSelectors = (
+    <div className="flex max-w-2xl flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <div className="text-sm font-medium">Microphone</div>
+        <Select
+          value={selectedMicrophoneId}
+          onValueChange={setSelectedMicrophoneId}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select microphone" />
+          </SelectTrigger>
+          <SelectContent className="max-h-60 overflow-y-auto rounded-md border bg-white shadow-lg">
+            {audioInputDevices.map((device) => (
+              <SelectItem
+                key={device.deviceId}
+                value={device.deviceId}
+                className="cursor-pointer px-8 py-2 hover:bg-gray-100"
+              >
+                {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="text-sm font-medium">Speaker</div>
+        <Select value={selectedSpeakerId} onValueChange={setSelectedSpeakerId}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select speaker" />
+          </SelectTrigger>
+          <SelectContent className="max-h-60 overflow-y-auto rounded-md border bg-white shadow-lg">
+            {audioOutputDevices.map((device) => (
+              <SelectItem
+                key={device.deviceId}
+                value={device.deviceId}
+                className="cursor-pointer px-8 py-2 hover:bg-gray-100"
+              >
+                {device.label || `Speaker ${device.deviceId.slice(0, 8)}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   const connectButton = (
     <button
@@ -50,10 +158,11 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
           {match(status.value)
             .with('connected', () => <ChatConnected />)
             .with('disconnected', () => (
-              <>
+              <div className="flex flex-col gap-4">
                 {callDuration}
+                {deviceSelectors}
                 {connectButton}
-              </>
+              </div>
             ))
             .with('connecting', () => (
               <div className="flex max-w-sm flex-col gap-4">
@@ -76,8 +185,9 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
               </div>
             ))
             .with('error', () => (
-              <div className="flex max-w-sm flex-col gap-4">
+              <div className="flex flex-col gap-4">
                 {callDuration}
+                {deviceSelectors}
                 {connectButton}
                 <div>
                   <span className="text-red-500">{status.reason}</span>

@@ -56,11 +56,7 @@ To use the SDK, wrap your components in the `VoiceProvider`, which will enable y
 import { VoiceProvider } from '@humeai/voice-react';
 
 function Page() {
-  return (
-    <VoiceProvider>
-      {/* ... */}
-    </VoiceProvider>
-  );
+  return <VoiceProvider>{/* ... */}</VoiceProvider>;
 }
 ```
 
@@ -108,7 +104,6 @@ See a complete list of props accepted by `VoiceProvider` below:
 
 (_Optional_) Set the number of messages that you wish to keep over the course of the conversation. The default value is 100.
 
-
 ## Connecting to EVI
 
 After you have set up your voice provider, you will be able to access various properties and methods to use the voice in your application. In any component that is a child of `VoiceProvider`, access these methods by importing the `useVoice` custom hook.
@@ -116,14 +111,10 @@ After you have set up your voice provider, you will be able to access various pr
 For example, to include a button to start a call, you could create a button like this:
 
 ```tsx
-'use client'
+'use client';
 import { useVoice } from '@humeai/voice-react';
 
-export function StartCall({
-  accessToken,
-}: {
-  accessToken: string;
-}) {
+export function StartCall({ accessToken }: { accessToken: string }) {
   const { connect } = useVoice();
 
   return (
@@ -157,9 +148,9 @@ export function StartCall({
 
 Opens a socket connection to the voice API and initializes the microphone.
 
-| Parameter | Type               | Description                               |
-| --------- | ------------------ | ----------------------------------------- |
-| `options` | `ConnectOptions`   | Optional settings for the connection.     |
+| Parameter | Type             | Description                           |
+| --------- | ---------------- | ------------------------------------- |
+| `options` | `ConnectOptions` | Optional settings for the connection. |
 
 #### `disconnect`: () => void
 
@@ -301,12 +292,12 @@ The number of assistant audio clips that are queued up, including the clip that 
 
 ## Types
 
-###  `ConnectOptions`
+### `ConnectOptions`
 
 ```ts
 export type ConnectOptions = {
   /** Authentication strategy and corresponding value. Authentication is required to establish the web socket connection with Hume's Voice API. See our [documentation](https://dev.hume.ai/docs/quick-start#getting-your-api-key) on obtaining your `API key` or `access token`.
- */
+   */
   auth: AuthStrategy;
   /** Hostname of the Hume API. If not provided this value will default to `"api.hume.ai"`. */
   hostname?: string;
@@ -322,12 +313,14 @@ export type ConnectOptions = {
   audioConstraints?: AudioConstraints;
   /** Session settings to be sent immediately once the connection to EVI is established. See documentation for details: https://dev.hume.ai/docs/empathic-voice-interface-evi/configuration/session-settings */
   sessionSettings?: Hume.empathicVoice.SessionSettings;
+  /** Device IDs for microphone and speaker selection */
+  devices?: DeviceOptions;
 };
 ```
 
 ### `AudioConstraints`
 
-```ts
+````ts
 export type AudioConstraints = {
   /** Reduce echo from the input (if supported). Defaults to `true`. */
   echoCancellation?: boolean;
@@ -336,7 +329,17 @@ export type AudioConstraints = {
   /** Automatically adjust microphone gain (if supported). Defaults to `true`. */
   autoGainControl?: boolean;
 };
-```
+
+### `DeviceOptions`
+
+```ts
+export type DeviceOptions = {
+  /** Device ID of the microphone/audio input to use. Uses the default microphone if not specified. */
+  microphoneDeviceId?: string;
+  /** Device ID of the speaker/audio output to use for playback. Uses the default audio output if not specified. */
+  speakerDeviceId?: string;
+};
+````
 
 ## Support
 
