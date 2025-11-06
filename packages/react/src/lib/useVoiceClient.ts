@@ -26,17 +26,17 @@ export enum VoiceReadyState {
 }
 type SessionSettingsOnConnect = Omit<
   Hume.empathicVoice.SessionSettings,
-  'builtinTools' | 'tools' | 'metadata' | 'type'
+  'builtinTools' | 'tools' | 'metadata' | 'type' | 'systemPrompt'
 >;
 type SessionSettingsPostConnect = Pick<
   Hume.empathicVoice.SessionSettings,
-  'builtinTools' | 'tools' | 'metadata' | 'type'
+  'builtinTools' | 'tools' | 'metadata' | 'type' | 'systemPrompt'
 >;
 /**
  * Some session settings can be sent as query params when the websocket connects.
  * This is preferred because it eliminates a race condition of the session settings being applied slightly after the conversation starts.
  *
- * `tools` and `builtinTools` are not yet supported in the query string. We can remove
+ * `tools`, `builtinTools`, and `systemPrompt` are not yet supported in the query string. We can remove
  * this and send everything in the query string once this changes. For the time being
  * we send as many settings as possible in the query string, and then a complete session
  * settings message shortly after.
@@ -52,8 +52,9 @@ const getSessionSettingsOnConnect = (
     return {};
   }
 
-  const { builtinTools, tools, metadata, type, ...onConnect } = sessionSettings;
-  if (builtinTools || tools || metadata) {
+  const { builtinTools, tools, metadata, type, systemPrompt, ...onConnect } =
+    sessionSettings;
+  if (builtinTools || tools || metadata || systemPrompt) {
     return {
       onConnect,
       postConnect: sessionSettings,
