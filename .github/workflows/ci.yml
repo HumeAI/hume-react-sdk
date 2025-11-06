@@ -1,9 +1,9 @@
-# Test that App is functioning properly
-name: PR Check
-
+name: ci
 on:
   # Run workflow when a PR is merged onto main
   push:
+    tags:
+      - 'v*.*.*'
     branches:
       - main
   # Run workflow on any open PR against main branch
@@ -47,16 +47,57 @@ jobs:
           NODE_ENV: development
         run: pnpm install
 
-      # Check that packages can build without errors
+          # Check that packages can build without errors
       - name: Builds without errors
         env:
           NODE_ENV: production
         run: pnpm build
 
-      # Check for linting errors
+          # Check for linting errors
       - name: Check for linting errors
         run: pnpm lint
 
       # Check that project unit tests are successful
       - name: Run unit tests
         run: pnpm test
+
+  publish:
+    needs: pr-check
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
+
+        - name: Set up node
+          uses: actions/setup-node@v4
+          with:
+              node-version: "18.18.0"
+
+        - name: Setup pnpm
+          run: npm install -g pnpm
+
+        - name: Install dependencies
+          run: pnpm install
+
+        - name: Build
+          run: pnpm build
+
+        - name: Publish to npm
+          run: |
+            npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+
+            cd packages
+            for package in $(ls); do
+              pushd $package
+              if [[ ${GITHUB_REF} == *alpha* ]]; then
+                npm publish --access public --tag alpha
+              elif [[ ${GITHUB_REF} == *beta* ]]; then
+                npm publish --access public --tag beta
+              else
+                npm publish --access public
+              fi
+              popd
+            done
+          env:
+              NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
