@@ -186,7 +186,9 @@ export const useVoiceClient = (props: {
 
         signal.addEventListener('abort', abortHandler);
 
-        socket.on('message', (message) => {
+        socket.on('message', (message_) => {
+          // TODO: remove this case when in `hume` (and further upstream in the openapi spec) the `type` field is no longer optional
+          const message = message_ as typeof message_ & {type: string}
           if (signal.aborted) {
             return;
           }
