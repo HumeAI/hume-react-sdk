@@ -26,7 +26,7 @@ export enum VoiceReadyState {
 }
 type SessionSettingsOnConnect = Omit<
   Hume.empathicVoice.SessionSettings,
-  'builtinTools' | 'tools' | 'metadata' | 'type' | 'systemPrompt'
+  'builtinTools' | 'tools' | 'metadata' | 'type'
 >;
 type SessionSettingsPostConnect = Pick<
   Hume.empathicVoice.SessionSettings,
