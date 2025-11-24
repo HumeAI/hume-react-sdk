@@ -533,13 +533,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       // Microphone permissions check - happens first
       let stream: MediaStream | null = null;
       try {
-        const micConstraints = {
-          ...audioConstraints,
-          ...(devices?.microphoneDeviceId && {
-            deviceId: devices.microphoneDeviceId,
-          }),
-        };
-        stream = await getStream(micConstraints);
+        stream = await getStream(audioConstraints);
       } catch (e) {
         const isPermissionDeniedError =
           e instanceof DOMException && e.name === 'NotAllowedError';
