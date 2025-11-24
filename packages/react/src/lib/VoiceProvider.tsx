@@ -514,8 +514,12 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
 
   const connect = useCallback(
     async (options: ConnectOptions) => {
-      const { audioConstraints, sessionSettings, devices, ...socketConfig } =
-        options;
+      const {
+        audioConstraints = {},
+        sessionSettings,
+        devices,
+        ...socketConfig
+      } = options;
       if (isConnectingRef.current || status.value === 'connected') {
         console.warn(
           'Already connected or connecting to a chat. Ignoring duplicate connection attempt.',
@@ -532,8 +536,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
 
       // Microphone permissions check - happens first
       let stream: MediaStream | null = null;
+
+      const micConstraints: MediaTrackConstraints = {
+        ...audioConstraints,
+        deviceId: devices?.microphoneDeviceId,
+      };
+
       try {
-        stream = await getStream(audioConstraints);
+        stream = await getStream(micConstraints);
       } catch (e) {
         const isPermissionDeniedError =
           e instanceof DOMException && e.name === 'NotAllowedError';
