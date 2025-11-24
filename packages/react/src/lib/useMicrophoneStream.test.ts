@@ -15,7 +15,7 @@ describe('useGetMicrophoneStream', () => {
 
   it('getStream function works correctly', async () => {
     const { result } = renderHook(() => useMicrophoneStream());
-    await result.current.getStream();
+    await result.current.getStream({});
     expect(result.current.permission).toBe('granted');
   });
 });
