@@ -6,7 +6,13 @@ import { z } from 'zod';
 
 import { ExampleComponent } from '@/components/ExampleComponent';
 
-export const Voice = ({ accessToken }: { accessToken: string }) => {
+export const Voice = ({
+  accessToken,
+  configId,
+}: {
+  accessToken: string;
+  configId?: string;
+}) => {
   const [enableAudioWorklet, setEnableAudioWorklet] = useState(true);
 
   const onToolCall = useCallback<ToolCallHandler>(
@@ -147,7 +153,7 @@ export const Voice = ({ accessToken }: { accessToken: string }) => {
             message,
           );
         }}
-        onToolCall={onToolCall}
+        {...(configId ? { onToolCall } : {})}
         onClose={(event) => {
           // eslint-disable-next-line no-console
           console.log('onClose', event);
@@ -160,7 +166,7 @@ export const Voice = ({ accessToken }: { accessToken: string }) => {
           }
         }}
       >
-        <ExampleComponent accessToken={accessToken} />
+        <ExampleComponent accessToken={accessToken} configId={configId} />
       </VoiceProvider>
     </>
   );
