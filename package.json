@@ -16,7 +16,7 @@
   "devDependencies": {
     "@humeai/eslint-config": "workspace:*",
     "@humeai/typescript-config": "workspace:*",
-    "prettier": "^3.2.5",
+    "prettier": "^3.7.4",
     "turbo": "^1.13.4"
   },
   "packageManager": "pnpm@9.1.4",
