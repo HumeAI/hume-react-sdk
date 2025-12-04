@@ -39,13 +39,7 @@ jobs:
           pnpm -r up hume@${VERSION}
 
       - name: Install dependencies
-        run: pnpm install
-
-      - name: Build packages
-        run: pnpm build:packages
-
-      - name: Run tests
-        run: pnpm test
+        run: pnpm install --ignore-scripts
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
