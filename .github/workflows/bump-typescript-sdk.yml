@@ -1,0 +1,65 @@
+name: Bump Hume dependency
+
+on:
+  repository_dispatch:
+    types: [typescript-sdk-published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Hume version to bump to (e.g., 0.15.6)'
+        required: true
+        type: string
+
+jobs:
+  bump-sdk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update hume dependency
+        run: |
+          VERSION="${{ github.event.client_payload.version || inputs.version }}"
+
+          echo "Updating hume to version ${VERSION}"
+          pnpm -r up hume@${VERSION}
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm build:packages
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            Bump hume dependency to ${{ github.event.client_payload.version || inputs.version }}
+
+          branch: bump-hume-${{ github.event.client_payload.version || inputs.version }}
+          delete-branch: true
+          title: "Bump hume to ${{ github.event.client_payload.version || inputs.version }}"
+          body: |
+            ## Summary
+            - Updates `hume` dependency to version ${{ github.event.client_payload.version || inputs.version }}
+            ${{ github.event.client_payload.tag && format('- Triggered by TypeScript SDK release {0}', github.event.client_payload.tag) || '- Triggered manually' }}
+
+            ${{ github.event.client_payload.is_prerelease == 'true' && '⚠️ This is a pre-release version' || '' }}
