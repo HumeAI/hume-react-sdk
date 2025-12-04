@@ -292,6 +292,14 @@ export const useVoiceClient = (props: {
             }
             return;
           }
+          if (message.type === 'session_settings') {
+            // TODO: we should probably add this to the message store
+            // and stop calling the onSessionSettings with a artificial
+            // session settings message on connect
+            //
+            // onSessionSettings.current?.(message);
+            return;
+          }
 
           // asserts that all message types are handled
           isNever(message);

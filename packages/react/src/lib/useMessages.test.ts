@@ -104,6 +104,7 @@ describe('useMessages hook', () => {
       fromText: false,
       models: MODEL_CONFIG,
       receivedAt: new Date(1),
+      isQuickResponse: false,
     };
   });
 
