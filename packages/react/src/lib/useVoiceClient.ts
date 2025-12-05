@@ -28,39 +28,21 @@ type SessionSettingsOnConnect = Omit<
   Hume.empathicVoice.SessionSettings,
   'builtinTools' | 'tools' | 'metadata' | 'type'
 >;
-type SessionSettingsPostConnect = Pick<
-  Hume.empathicVoice.SessionSettings,
-  'builtinTools' | 'tools' | 'metadata' | 'type' | 'systemPrompt'
->;
 /**
- * Some session settings can be sent as query params when the websocket connects.
- * This is preferred because it eliminates a race condition of the session settings being applied slightly after the conversation starts.
+ * Extracts session settings that can be sent as query params when the websocket connects.
  *
- * `tools`, `builtinTools`, and `systemPrompt` are not yet supported in the query string. We can remove
- * this and send everything in the query string once this changes. For the time being
- * we send as many settings as possible in the query string, and then a complete session
- * settings message shortly after.
- *
+ * `tools`, `builtinTools`, `systemPrompt`, and `metadata` are not yet supported in the query string.
  */
 const getSessionSettingsOnConnect = (
   sessionSettings?: Hume.empathicVoice.SessionSettings,
-): {
-  onConnect?: SessionSettingsOnConnect;
-  postConnect?: SessionSettingsPostConnect;
-} => {
+): SessionSettingsOnConnect | undefined => {
   if (!sessionSettings) {
-    return {};
+    return undefined;
   }
 
   const { builtinTools, tools, metadata, type, systemPrompt, ...onConnect } =
     sessionSettings;
-  if (builtinTools || tools || metadata || systemPrompt) {
-    return {
-      onConnect,
-      postConnect: sessionSettings,
-    };
-  }
-  return { onConnect };
+  return onConnect;
 };
 
 export type ToolCallHandler = (
@@ -150,8 +132,7 @@ export const useVoiceClient = (props: {
       const signal = controller.signal;
       connectAbortController.current = controller;
 
-      const { onConnect: connectSettings, postConnect: postConnectSettings } =
-        getSessionSettingsOnConnect(sessionSettings);
+      const connectSettings = getSessionSettingsOnConnect(sessionSettings);
 
       return new Promise<VoiceReadyState>((resolve, reject) => {
         if (signal.aborted) {
@@ -205,10 +186,6 @@ export const useVoiceClient = (props: {
             onOpen.current?.();
             setReadyState(VoiceReadyState.OPEN);
             signal.removeEventListener('abort', abortHandler);
-            if (postConnectSettings) {
-              socket.sendSessionSettings(postConnectSettings);
-              onSessionSettings.current?.(postConnectSettings);
-            }
             resolve(VoiceReadyState.OPEN);
           }
 
@@ -293,11 +270,7 @@ export const useVoiceClient = (props: {
             return;
           }
           if (message.type === 'session_settings') {
-            // TODO: we should probably add this to the message store
-            // and stop calling the onSessionSettings with a artificial
-            // session settings message on connect
-            //
-            // onSessionSettings.current?.(message);
+            onSessionSettings.current?.(message);
             return;
           }
 
