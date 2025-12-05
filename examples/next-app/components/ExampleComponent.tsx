@@ -13,7 +13,13 @@ import {
   SelectValue,
 } from '@/components/Select';
 
-export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
+export const ExampleComponent = ({
+  accessToken,
+  configId,
+}: {
+  accessToken: string;
+  configId?: string;
+}) => {
   const { connect, disconnect, status, callDurationTimestamp } = useVoice();
 
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>(
@@ -71,11 +77,15 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
       value: accessToken,
     },
     hostname: process.env.NEXT_PUBLIC_HUME_VOICE_HOSTNAME || 'api.hume.ai',
-    configId: process.env.NEXT_PUBLIC_HUME_VOICE_WEATHER_CONFIG_ID,
-    sessionSettings: {
-      type: 'session_settings' as const,
-      builtinTools: [{ name: 'web_search' as const }],
-    },
+    ...(configId
+      ? {
+          configId,
+          sessionSettings: {
+            type: 'session_settings' as const,
+            builtinTools: [{ name: 'web_search' as const }],
+          },
+        }
+      : {}),
     devices: {
       microphoneDeviceId: selectedMicrophoneId,
       speakerDeviceId: selectedSpeakerId,
@@ -159,6 +169,12 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
             .with('connected', () => <ChatConnected />)
             .with('disconnected', () => (
               <div className="flex flex-col gap-4">
+                {!configId && (
+                  <div className="rounded border border-yellow-400 bg-yellow-50 p-3 text-sm text-yellow-800">
+                    Tool use is disabled. Please provide the HUME_CONFIG_ID
+                    environment variable to enable tool use.
+                  </div>
+                )}
                 {callDuration}
                 {deviceSelectors}
                 {connectButton}
@@ -186,6 +202,12 @@ export const ExampleComponent = ({ accessToken }: { accessToken: string }) => {
             ))
             .with('error', () => (
               <div className="flex flex-col gap-4">
+                {!configId && (
+                  <div className="rounded border border-yellow-400 bg-yellow-50 p-3 text-sm text-yellow-800">
+                    Tool use is disabled. Please provide the HUME_CONFIG_ID
+                    environment variable to enable tool use.
+                  </div>
+                )}
                 {callDuration}
                 {deviceSelectors}
                 {connectButton}
