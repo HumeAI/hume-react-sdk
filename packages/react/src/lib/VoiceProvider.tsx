@@ -31,6 +31,8 @@ import {
   AudioOutputMessage,
   ChatMetadataMessage,
   JSONMessage,
+  ToolError,
+  ToolResponse,
   UserInterruptionMessage,
   UserTranscriptMessage,
 } from '../models/messages';
@@ -811,6 +813,13 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       }
       try {
         clientSendToolMessage(message);
+        const messageWithTimestamp = {
+          ...message,
+          receivedAt: new Date(),
+        } as ToolResponse | ToolError;
+
+        messageStore.onMessage(messageWithTimestamp);
+        toolStatus.addToStore(messageWithTimestamp);
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unknown error';
         updateError({
@@ -820,7 +829,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         });
       }
     },
-    [clientSendToolMessage, updateError],
+    [clientSendToolMessage, messageStore, toolStatus, updateError],
   );
 
   const ctx = useMemo(
