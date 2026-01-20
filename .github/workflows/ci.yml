@@ -69,13 +69,14 @@ jobs:
         - name: Checkout repo
           uses: actions/checkout@v4
 
+        - uses: pnpm/action-setup@v2
+
         - name: Set up node
           uses: actions/setup-node@v4
           with:
               node-version: "18.18.0"
-
-        - name: Setup pnpm
-          run: npm install -g pnpm
+              registry-url: 'https://registry.npmjs.org'
+              cache: 'pnpm'
 
         - name: Install dependencies
           run: pnpm install
@@ -83,21 +84,30 @@ jobs:
         - name: Build
           run: pnpm build
 
+        - name: Test package publishing (verify workspace:* resolution)
+          working-directory: packages
+          run: |
+            # Test that pnpm resolves workspace:* dependencies correctly when packing
+            for package in */; do
+              echo "Testing package: $package"
+              cd "$package"
+              # Create a pack tarball - pnpm will resolve workspace:* during packing
+              pnpm pack --quiet
+              # Extract and check that workspace:* was resolved to actual versions
+              tarball=$(ls *.tgz | head -1)
+              tar -xzOf "$tarball" package/package.json | grep -q '"workspace:\*"' && (echo "✗ ERROR: workspace:* not resolved in $package" && rm -f "$tarball" && exit 1) || echo "✓ workspace:* resolved correctly in $package"
+              rm -f "$tarball"
+              cd ..
+            done
+
         - name: Publish to npm
           run: |
-            npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-
-            cd packages
-            for package in $(ls); do
-              pushd $package
-              if [[ ${GITHUB_REF} == *alpha* ]]; then
-                npm publish --access public --tag alpha
-              elif [[ ${GITHUB_REF} == *beta* ]]; then
-                npm publish --access public --tag beta
-              else
-                npm publish --access public --tag latest
-              fi
-              popd
-            done
+            if [[ ${GITHUB_REF} == *alpha* ]]; then
+              pnpm publish -r --access public --tag alpha --no-git-checks
+            elif [[ ${GITHUB_REF} == *beta* ]]; then
+              pnpm publish -r --access public --tag beta --no-git-checks
+            else
+              pnpm publish -r --access public --tag latest --no-git-checks
+            fi
           env:
-              NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
