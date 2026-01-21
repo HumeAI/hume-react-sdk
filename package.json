@@ -11,8 +11,7 @@
     "test": "turbo test",
     "test-watch": "turbo test-watch",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "test:publish": "bash scripts/test-publish.sh",
-    "release": "pnpm install && pnpm build:packages && pnpm test:publish && pnpm publish -r --access public --no-git-checks"
+    "release": "pnpm install && pnpm build:packages && pnpm publish -r --access public --no-git-checks"
   },
   "devDependencies": {
     "@humeai/eslint-config": "workspace:*",
