@@ -78,36 +78,7 @@ jobs:
               registry-url: 'https://registry.npmjs.org'
               cache: 'pnpm'
 
-        - name: Install dependencies
-          run: pnpm install
-
-        - name: Build
-          run: pnpm build
-
-        - name: Test package publishing (verify workspace:* resolution)
-          working-directory: packages
-          run: |
-            # Test that pnpm resolves workspace:* dependencies correctly when packing
-            for package in */; do
-              echo "Testing package: $package"
-              cd "$package"
-              # Create a pack tarball - pnpm will resolve workspace:* during packing
-              pnpm pack --quiet
-              # Extract and check that workspace:* was resolved to actual versions
-              tarball=$(ls *.tgz | head -1)
-              tar -xzOf "$tarball" package/package.json | grep -q '"workspace:\*"' && (echo "✗ ERROR: workspace:* not resolved in $package" && rm -f "$tarball" && exit 1) || echo "✓ workspace:* resolved correctly in $package"
-              rm -f "$tarball"
-              cd ..
-            done
-
-        - name: Publish to npm
-          run: |
-            if [[ ${GITHUB_REF} == *alpha* ]]; then
-              pnpm publish -r --access public --tag alpha --no-git-checks
-            elif [[ ${GITHUB_REF} == *beta* ]]; then
-              pnpm publish -r --access public --tag beta --no-git-checks
-            else
-              pnpm publish -r --access public --tag latest --no-git-checks
-            fi
+        - name: Release
+          run: pnpm run release
           env:
               NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
