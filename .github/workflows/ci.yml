@@ -69,35 +69,16 @@ jobs:
         - name: Checkout repo
           uses: actions/checkout@v4
 
+        - uses: pnpm/action-setup@v2
+
         - name: Set up node
           uses: actions/setup-node@v4
           with:
               node-version: "18.18.0"
+              registry-url: 'https://registry.npmjs.org'
+              cache: 'pnpm'
 
-        - name: Setup pnpm
-          run: npm install -g pnpm
-
-        - name: Install dependencies
-          run: pnpm install
-
-        - name: Build
-          run: pnpm build
-
-        - name: Publish to npm
-          run: |
-            npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-
-            cd packages
-            for package in $(ls); do
-              pushd $package
-              if [[ ${GITHUB_REF} == *alpha* ]]; then
-                npm publish --access public --tag alpha
-              elif [[ ${GITHUB_REF} == *beta* ]]; then
-                npm publish --access public --tag beta
-              else
-                npm publish --access public --tag latest
-              fi
-              popd
-            done
+        - name: Release
+          run: pnpm run release
           env:
-              NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
