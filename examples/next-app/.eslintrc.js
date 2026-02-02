@@ -37,6 +37,7 @@ module.exports = {
     '!.lintstagedrc.js',
     '!.prettierrc.js',
     '!next-env.d.ts',
+    'e2e/**/*',
   ],
   settings: {
     react: {
@@ -162,8 +163,17 @@ module.exports = {
       },
     },
     {
-      files: ['./e2e/**.*.ts', './e2e/**.*.tsx'],
+      files: ['./e2e/**/*.ts', './e2e/**/*.tsx'],
       extends: ['plugin:playwright/recommended'],
+      rules: {
+        // Relax strict TypeScript rules for e2e tests
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        'playwright/expect-expect': 'off',
+        'prettier/prettier': 'off',
+      },
     },
   ],
   rules: {

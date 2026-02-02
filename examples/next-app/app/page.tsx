@@ -3,19 +3,24 @@ import { fetchAccessToken } from 'hume';
 import { Voice } from '@/components/Voice';
 
 export default async function Home() {
-  if (!process.env.HUME_API_KEY || !process.env.HUME_SECRET_KEY) {
+  // Support both regular and test credentials (for CI)
+  const apiKey = process.env.HUME_API_KEY || process.env.TEST_HUME_API_KEY;
+  const secretKey = process.env.HUME_SECRET_KEY || process.env.TEST_HUME_SECRET_KEY;
+
+  if (!apiKey || !secretKey) {
     return (
       <div className={'p-6'}>
         <h1 className={'my-4 text-lg font-medium'}>Hume EVI React Example</h1>
         <div>
           Please set your HUME_API_KEY and HUME_SECRET_KEY environment variables
+          (or TEST_HUME_API_KEY and TEST_HUME_SECRET_KEY for testing)
         </div>
       </div>
     );
   }
   const accessToken = await fetchAccessToken({
-    apiKey: process.env.HUME_API_KEY,
-    secretKey: process.env.HUME_SECRET_KEY,
+    apiKey,
+    secretKey,
   });
 
   const configId = process.env.HUME_CONFIG_ID;
