@@ -122,3 +122,58 @@ test.describe('Voice SDK - Connection Flow', () => {
     ).toBeVisible();
   });
 });
+
+test.describe.serial('Voice SDK - Assistant / audio response', () => {
+  test('should connect and receive assistant response (audio/chat from API)', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['microphone']);
+    await page.goto('/');
+
+    const errorMessage = page.getByText(
+      /please set your.*environment variables/i,
+    );
+    const hasError = await errorMessage.isVisible().catch(() => false);
+    if (hasError) {
+      test.skip(true, 'API credentials not configured');
+    }
+
+    // Connect using real API (credentials from .env or CI TEST_HUME_*)
+    const connectButton = page.getByRole('button', {
+      name: /connect to voice/i,
+    });
+    await connectButton.click();
+
+    // Wait for ChatConnected UI (confirms we are connected to the API)
+    await expect(page.getByText('Playing')).toBeVisible({ timeout: 30000 });
+    const disconnectButton = page.getByRole('button', { name: /disconnect/i });
+
+    // Send a text message to trigger an assistant response
+    const textInput = page.getByPlaceholder(/write an input message/i);
+    const sendButton = page.getByRole('button', {
+      name: /send text input message/i,
+    });
+    await textInput.fill('Hello');
+    await sendButton.click();
+
+    // Wait for assistant response from API (chat/audio). ChatConnected shows assistant messages with "Assistant" label in "All messages" list.
+    const assistantLabelInList = page.getByText('Assistant', { exact: true });
+
+    // Assistant response should appear within 45s (API round-trip + TTS/audio)
+    await expect(assistantLabelInList.first()).toBeVisible({ timeout: 45000 });
+
+    // Verify "All messages" shows at least 2 (user + assistant)
+    const allMessagesHeading = page.getByText(/All messages \(\d+\)/);
+    await expect(allMessagesHeading).toBeVisible();
+    const headingText = await allMessagesHeading.textContent();
+    const match = headingText?.match(/All messages \((\d+)\)/);
+    const count = match ? Number(match[1]) : 0;
+    expect(count).toBeGreaterThanOrEqual(2);
+
+    await disconnectButton.click();
+    await expect(page.getByText('disconnected')).toBeVisible({
+      timeout: 10000,
+    });
+  });
+});
