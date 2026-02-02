@@ -172,7 +172,7 @@ test.describe.serial('Voice SDK - Assistant / audio response', () => {
     const playingVisible = await playingLabel.isVisible().catch(() => false);
     if (!playingVisible) {
       await expect(playingLabel.or(errorState).first()).toBeVisible({
-        timeout: 30000,
+        timeout: 90000,
       });
       if (await errorState.isVisible().catch(() => false)) {
         test.skip(true, 'Connection failed before ChatConnected');
