@@ -51,8 +51,9 @@ jobs:
       - name: Pack @humeai/voice-react
         working-directory: ./sdk
         run: |
-          pnpm pack --filter @humeai/voice-react
-          echo "TARBALL=$(ls humeai-voice-react-*.tgz)" >> $GITHUB_ENV
+          cd packages/react && pnpm pack
+          mv humeai-voice-react-*.tgz ../..
+          echo "TARBALL=$(ls ../../humeai-voice-react-*.tgz | xargs -I {} basename {})" >> $GITHUB_ENV
 
       - name: Install example deps and use packed SDK
         working-directory: ./examples/evi/evi-next-js-app-router-quickstart
