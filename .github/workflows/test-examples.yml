@@ -1,0 +1,80 @@
+name: test-examples
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  test-examples:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SDK repo (PR/branch)
+        uses: actions/checkout@v4
+        with:
+          path: sdk
+          ref: ${{ github.event.pull_request.head.sha || github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Checkout examples repo
+        uses: actions/checkout@v4
+        with:
+          repository: humeai/hume-api-examples
+          path: examples
+
+      - name: Set up node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+
+      - name: Build React SDK
+        working-directory: ./sdk
+        run: |
+          echo "=== React SDK Build Info ==="
+          echo "Branch: ${{ github.head_ref || github.ref_name || 'unknown' }}"
+          echo "Ref: ${{ github.event.pull_request.head.sha || github.head_ref || github.ref }}"
+          echo "Commit SHA: $(git rev-parse HEAD)"
+          echo "==========================="
+          pnpm install
+          pnpm build
+          echo "Package version: $(node -p "require('./packages/react/package.json').version")"
+
+      - name: Pack @humeai/voice-react
+        working-directory: ./sdk
+        run: |
+          pnpm pack --filter @humeai/voice-react
+          echo "TARBALL=$(ls humeai-voice-react-*.tgz)" >> $GITHUB_ENV
+
+      - name: Install example deps and use packed SDK
+        working-directory: ./examples/evi/evi-next-js-app-router-quickstart
+        run: |
+          npm ci
+          npm install "../../../sdk/${{ env.TARBALL }}"
+          echo "=== Verifying @humeai/voice-react ==="
+          INSTALLED=$(node -p "require('@humeai/voice-react/package.json').version")
+          echo "Installed version: $INSTALLED"
+          echo "===================="
+
+      - name: Build example
+        working-directory: ./examples/evi/evi-next-js-app-router-quickstart
+        run: npm run build
+
+      - name: Install Playwright browsers
+        working-directory: ./examples/evi/evi-next-js-app-router-quickstart
+        run: npx playwright install --with-deps chromium
+
+      - name: Run evi-next-js-app-router-quickstart tests
+        working-directory: ./examples/evi/evi-next-js-app-router-quickstart
+        env:
+          TEST_HUME_API_KEY: ${{ secrets.TEST_HUME_API_KEY }}
+          TEST_HUME_SECRET_KEY: ${{ secrets.TEST_HUME_SECRET_KEY }}
+        run: npm run test
