@@ -91,46 +91,218 @@ type ResourceStatus =
   | 'disconnecting'
   | 'disconnected';
 
+/**
+ * The context type for the Voice Provider, containing all voice-related methods and state.
+ * 
+ * Provides a comprehensive interface for interacting with Hume's Empathic Voice Interface,
+ * including connection management, audio control, message handling, and tool interactions.
+ */
 export type VoiceContextType = {
+  /**
+   * Opens a socket connection to the voice API and initializes the microphone.
+   * @param options Optional settings for the connection
+   * @returns A promise that resolves when the connection is established
+   */
   connect: (options: ConnectOptions) => Promise<void>;
+
+  /**
+   * Disconnect from the voice API and microphone.
+   * @returns A promise that resolves when disconnection is complete
+   */
   disconnect: () => Promise<void>;
+
+  /**
+   * Audio FFT values for the assistant audio output.
+   * Provides frequency domain data for visualizing assistant audio.
+   */
   fft: number[];
+
+  /**
+   * Boolean that describes whether the microphone is muted.
+   */
   isMuted: boolean;
+
+  /**
+   * Boolean that describes whether the assistant audio is muted.
+   */
   isAudioMuted: boolean;
+
+  /**
+   * Describes whether the assistant audio is currently playing.
+   */
   isPlaying: boolean;
+
+  /**
+   * Message history of the current conversation.
+   * By default, does not include interim user messages when `verboseTranscription` is set to true on the `VoiceProvider`.
+   * To access interim messages, define a custom `onMessage` callback on your `VoiceProvider`.
+   */
   messages: (JSONMessage | ConnectionMessage)[];
+
+  /**
+   * The last transcript message received from the assistant.
+   */
   lastVoiceMessage: AssistantTranscriptMessage | null;
+
+  /**
+   * The last transcript message received from the user.
+   */
   lastUserMessage: UserTranscriptMessage | null;
+
+  /**
+   * The last prosody message received from the assistant.
+   */
   lastAssistantProsodyMessage: AssistantProsodyMessage | null;
+
+  /**
+   * Clear transcript messages from history.
+   */
   clearMessages: () => void;
+
+  /**
+   * Mute the microphone.
+   */
   mute: () => void;
+
+  /**
+   * Unmute the microphone.
+   */
   unmute: () => void;
+
+  /**
+   * Mute the assistant audio.
+   */
   muteAudio: () => void;
+
+  /**
+   * Unmute the assistant audio.
+   */
   unmuteAudio: () => void;
+
+  /**
+   * The current readyState of the websocket connection.
+   */
   readyState: VoiceReadyState;
+
+  /**
+   * Send a user input message.
+   * @param text The text message to send
+   */
   sendUserInput: (text: string) => void;
+
+  /**
+   * Send a text string for the assistant to read out loud.
+   * @param text The text to send for the assistant to speak
+   */
   sendAssistantInput: (text: string) => void;
+
+  /**
+   * Send new session settings to the assistant.
+   * This overrides any session settings that were passed as props to the VoiceProvider.
+   */
   sendSessionSettings: Hume.empathicVoice.chat.ChatSocket['sendSessionSettings'];
+
+  /**
+   * Send a tool response or tool error message to the EVI backend.
+   * @param type The tool response or tool error message to send
+   */
   sendToolMessage: (
     type:
       | Hume.empathicVoice.ToolResponseMessage
       | Hume.empathicVoice.ToolErrorMessage,
   ) => void;
+
+  /**
+   * Pauses responses from EVI. Chat history is still saved and sent after resuming.
+   */
   pauseAssistant: () => void;
+
+  /**
+   * Resumes responses from EVI. Chat history sent while paused will now be sent.
+   */
   resumeAssistant: () => void;
+
+  /**
+   * The current status of the voice connection.
+   * Informs whether the voice is connected, disconnected, connecting, or in an error state.
+   * If the voice is in an error state, it will automatically disconnect from the websocket and microphone.
+   */
   status: VoiceStatus;
+
+  /**
+   * Audio FFT values for microphone input.
+   * Provides frequency domain data for visualizing microphone audio.
+   */
   micFft: number[];
+
+  /**
+   * Provides more detailed error information if the voice is in an error state.
+   * Null if there is no error.
+   */
   error: VoiceError | null;
+
+  /**
+   * True if an audio playback error has occurred.
+   */
   isAudioError: boolean;
+
+  /**
+   * True if the voice is in an error state.
+   */
   isError: boolean;
+
+  /**
+   * True if a microphone error has occurred.
+   */
   isMicrophoneError: boolean;
+
+  /**
+   * True if there was an error connecting to the websocket.
+   */
   isSocketError: boolean;
+
+  /**
+   * The length of a call.
+   * This value persists after the conversation has ended.
+   * Null if no call has been made.
+   */
   callDurationTimestamp: string | null;
+
+  /**
+   * A map of tool call IDs to their associated tool messages.
+   * Tracks the status and responses of tool calls.
+   */
   toolStatusStore: ReturnType<typeof useToolStatus>['store'];
+
+  /**
+   * Metadata about the current chat, including chat ID, chat group ID, and request ID.
+   * Null if not connected.
+   */
   chatMetadata: ChatMetadataMessage | null;
+
+  /**
+   * The number of assistant audio clips that are queued up, including the clip that is currently playing.
+   */
   playerQueueLength: number;
+
+  /**
+   * Boolean that describes whether the assistant is paused.
+   * When paused, the assistant will still be listening, but will not send a response until it is resumed.
+   */
   isPaused: boolean;
+
+  /**
+   * The current playback volume level for the assistant's voice.
+   * Ranges from 0.0 (silent) to 1.0 (full volume).
+   * Defaults to 1.0.
+   */
   volume: number;
+
+  /**
+   * Sets the playback volume for audio generated by the assistant.
+   * Input values are clamped between 0.0 (silent) and 1.0 (full volume).
+   * @param level The volume level to set (0.0 - 1.0)
+   */
   setVolume: (level: number) => void;
 };
 
