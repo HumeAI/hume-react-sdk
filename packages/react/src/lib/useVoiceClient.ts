@@ -30,8 +30,9 @@ type SessionSettingsOnConnect = Omit<
 >;
 /**
  * Extracts session settings that can be sent as query params when the websocket connects.
+ * Matches ConnectSessionSettings in the TypeScript SDK (systemPrompt, voiceId, context, etc. are supported).
  *
- * `tools`, `builtinTools`, `systemPrompt`, and `metadata` are not yet supported in the query string.
+ * `tools`, `builtinTools`, and `metadata` are not yet supported in the connect query string.
  */
 const getSessionSettingsOnConnect = (
   sessionSettings?: Hume.empathicVoice.SessionSettings,
@@ -40,8 +41,7 @@ const getSessionSettingsOnConnect = (
     return undefined;
   }
 
-  const { builtinTools, tools, metadata, type, systemPrompt, ...onConnect } =
-    sessionSettings;
+  const { builtinTools, tools, metadata, type, ...onConnect } = sessionSettings;
   return onConnect;
 };
 
