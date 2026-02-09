@@ -6,7 +6,7 @@
   </p>
 </div>
 
-## Getting started 
+## Getting started
 
 This monorepo contains packages for adding Hume AI to your React applications.
 
