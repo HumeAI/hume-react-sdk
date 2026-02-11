@@ -228,9 +228,13 @@ Boolean that describes whether the assistant is paused. When paused, the assista
 
 #### `fft`: number[]
 
+> **Deprecated.** Use the `usePlayerFft()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
+
 Audio FFT values for the assistant audio output.
 
 #### `micFft`: number[]
+
+> **Deprecated.** Use the `useMicFft()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
 
 Audio FFT values for microphone input.
 
@@ -276,6 +280,8 @@ If true, there was an error connecting to the websocket.
 
 #### `callDurationTimestamp`: string | null
 
+> **Deprecated.** Use the `useCallDurationTimestamp()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
+
 The length of a call. This value persists after the conversation has ended.
 
 #### `toolStatusStore`: Record<string, { call?: [ToolCall](); resolved?: [ToolResponse]() | [ToolError]() }>
@@ -289,6 +295,49 @@ Metadata about the current chat, including chat ID, chat group ID, and request I
 #### `playerQueueLength`: number
 
 The number of assistant audio clips that are queued up, including the clip that is currently playing.
+
+### Granular Hooks
+
+These hooks subscribe directly to high-frequency data via `useSyncExternalStore`, bypassing the main `VoiceContext`. Use them instead of the deprecated `useVoice()` properties for FFT and call duration data.
+
+#### `usePlayerFft()`: readonly number[]
+
+Returns live FFT values for the assistant audio output, updated at display refresh rate (~60Hz).
+
+```tsx
+import { usePlayerFft } from '@humeai/voice-react';
+
+function Waveform() {
+  const fft = usePlayerFft();
+  // render visualization using fft values
+}
+```
+
+#### `useMicFft()`: readonly number[]
+
+Returns live FFT values for microphone input, updated at display refresh rate (~60Hz).
+
+```tsx
+import { useMicFft } from '@humeai/voice-react';
+
+function MicWaveform() {
+  const micFft = useMicFft();
+  // render visualization using micFft values
+}
+```
+
+#### `useCallDurationTimestamp()`: string | null
+
+Returns the formatted call duration timestamp, updated ~1Hz during an active call.
+
+```tsx
+import { useCallDurationTimestamp } from '@humeai/voice-react';
+
+function CallTimer() {
+  const timestamp = useCallDurationTimestamp();
+  return <span>{timestamp ?? '0:00'}</span>;
+}
+```
 
 ## Types
 
