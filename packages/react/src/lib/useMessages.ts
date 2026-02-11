@@ -21,9 +21,9 @@ export const useMessages = ({
   // voiceMessageMap is a lookup buffer consumed only inside onPlayAudio.
   // It is never rendered, so a ref avoids unnecessary re-renders and
   // keeps onPlayAudio's dependency array stable.
-  const voiceMessageMapRef = useRef<
-    Record<string, AssistantTranscriptMessage>
-  >({});
+  const voiceMessageMapRef = useRef<Record<string, AssistantTranscriptMessage>>(
+    {},
+  );
 
   const [messages, setMessages] = useState<
     Array<JSONMessage | ConnectionMessage>
@@ -86,7 +86,10 @@ export const useMessages = ({
    * interim user messages are almost always at the end by design.
    */
   const addMessageKeepingInterimLast = useCallback(
-    (prev: Array<JSONMessage | ConnectionMessage>, messageToAdd: JSONMessage) => {
+    (
+      prev: Array<JSONMessage | ConnectionMessage>,
+      messageToAdd: JSONMessage,
+    ) => {
       const last = prev[prev.length - 1];
 
       // Fast path: if the last message is an interim user message, insert
@@ -110,7 +113,9 @@ export const useMessages = ({
         case 'assistant_message':
           // For assistant messages, `sendMessageToParent` is called in `onPlayAudio`
           // to line up the transcript event with the correct audio clip.
-          voiceMessageMapRef.current[message.id] = message;
+          if (message.id) {
+            voiceMessageMapRef.current[message.id] = message;
+          }
           break;
         case 'user_message':
           sendMessageToParent?.(message);
@@ -160,11 +165,7 @@ export const useMessages = ({
           break;
       }
     },
-    [
-      addMessageKeepingInterimLast,
-      messageHistoryLimit,
-      sendMessageToParent,
-    ],
+    [addMessageKeepingInterimLast, messageHistoryLimit, sendMessageToParent],
   );
 
   const onPlayAudio = useCallback(
@@ -173,7 +174,9 @@ export const useMessages = ({
       if (matchingTranscript) {
         sendMessageToParent?.(matchingTranscript);
         setLastVoiceMessage(matchingTranscript);
-        setMessages((prev) => addMessageKeepingInterimLast(prev, matchingTranscript));
+        setMessages((prev) =>
+          addMessageKeepingInterimLast(prev, matchingTranscript),
+        );
 
         // Remove from the map to ensure we don't push it more than once
         delete voiceMessageMapRef.current[id];

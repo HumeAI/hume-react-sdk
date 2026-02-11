@@ -263,7 +263,9 @@ export const useSoundPlayer = (props: {
           };
 
           // Pre-allocate buffers for FFT analysis (zero allocations per frame)
-          const frequencyDataBuffer = new Uint8Array(analyser.frequencyBinCount);
+          const frequencyDataBuffer = new Uint8Array(
+            analyser.frequencyBinCount,
+          );
           const barkBuffer = new Array<number>(BARK_BAND_COUNT).fill(0);
 
           // Use requestAnimationFrame instead of setInterval(5ms) for display-rate updates

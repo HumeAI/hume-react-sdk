@@ -240,7 +240,10 @@ export const useMicrophone = (props: MicrophoneProps) => {
     if (mimeTypeResult.success) {
       mimeTypeRef.current = mimeTypeResult.mimeType;
     } else {
-      onErrorRef.current(mimeTypeResult.error.message, 'mime_types_not_supported');
+      onErrorRef.current(
+        mimeTypeResult.error.message,
+        'mime_types_not_supported',
+      );
     }
   }, []);
 

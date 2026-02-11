@@ -2,9 +2,8 @@ import { Hume, HumeClient } from 'hume';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Simplify } from 'type-fest';
 
-import { useLatestRef } from './useLatestRef';
-
 import { type AuthStrategy } from './auth';
+import { useLatestRef } from './useLatestRef';
 import type {
   AudioOutputMessage,
   JSONMessage,

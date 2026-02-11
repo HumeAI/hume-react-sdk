@@ -4,7 +4,9 @@ const BARK_BAND_COUNT = 24;
 
 export type FftSnapshot = readonly number[];
 
-const EMPTY_FFT: FftSnapshot = Object.freeze(new Array(BARK_BAND_COUNT).fill(0));
+const EMPTY_FFT: FftSnapshot = Object.freeze(
+  new Array<number>(BARK_BAND_COUNT).fill(0),
+);
 
 /**
  * A lightweight external store for FFT data that avoids React state updates.
@@ -16,10 +18,14 @@ const EMPTY_FFT: FftSnapshot = Object.freeze(new Array(BARK_BAND_COUNT).fill(0))
  * Designed for use with useSyncExternalStore.
  */
 export class FftStore {
-  private _buffer: number[] = new Array(BARK_BAND_COUNT).fill(0);
+  private _buffer: number[] = new Array<number>(BARK_BAND_COUNT).fill(0);
+
   private _snapshot: FftSnapshot = EMPTY_FFT;
+
   private _listeners = new Set<() => void>();
+
   private _dirty = false;
+
   private _rafId: number | null = null;
 
   /**

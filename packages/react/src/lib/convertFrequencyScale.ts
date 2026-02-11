@@ -23,7 +23,7 @@ export function convertLinearFrequenciesToBarkInto(
   const frequencyResolution = maxFrequency / linearData.length;
 
   for (let i = 0; i < barkCenterFrequencies.length; i++) {
-    const barkFreq = barkCenterFrequencies[i]!;
+    const barkFreq = barkCenterFrequencies[i] ?? 0;
     const linearDataIndex = Math.round(barkFreq / frequencyResolution);
     if (linearDataIndex >= 0 && linearDataIndex < linearData.length) {
       out[i] =

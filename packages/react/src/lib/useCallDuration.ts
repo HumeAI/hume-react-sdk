@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef } from 'react';
  */
 class CallDurationStore {
   private _snapshot: string | null = null;
+
   private _listeners = new Set<() => void>();
 
   write(value: string | null): void {
