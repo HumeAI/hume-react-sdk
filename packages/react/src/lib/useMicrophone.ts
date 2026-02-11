@@ -1,11 +1,14 @@
 // cspell:ignore dataavailable
 import type { MimeType } from 'hume';
 import { getBrowserSupportedMimeType } from 'hume';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { convertLinearFrequenciesToBark } from './convertFrequencyScale';
-import { generateEmptyFft } from './generateEmptyFft';
+import { convertLinearFrequenciesToBarkInto } from './convertFrequencyScale';
+import { FftStore } from './fftStore';
+import { useLatestRef } from './useLatestRef';
 import type { MicErrorReason } from './VoiceProvider';
+
+const BARK_BAND_COUNT = 24;
 
 export type MicrophoneProps = {
   onAudioCaptured: (b: ArrayBuffer) => void;
@@ -15,12 +18,15 @@ export type MicrophoneProps = {
 };
 
 export const useMicrophone = (props: MicrophoneProps) => {
-  const { onAudioCaptured, onError } = props;
+  const { onAudioCaptured } = props;
+  const onErrorRef = useLatestRef(props.onError);
   const [isMuted, setIsMuted] = useState(false);
   const isMutedRef = useRef(isMuted);
   const currentStream = useRef<MediaStream | null>(null);
 
-  const [fft, setFft] = useState<number[]>(generateEmptyFft());
+  // FFT data is managed outside React state via FftStore.
+  const fftStore = useRef(new FftStore()).current;
+
   const currentAnalyzer = useRef<AnalyserNode | null>(null);
   const fftAnimationId = useRef<number | null>(null);
   const analyzerSource = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -28,11 +34,11 @@ export const useMicrophone = (props: MicrophoneProps) => {
   const mimeTypeRef = useRef<MimeType | null>(null);
 
   const audioContext = useRef<AudioContext | null>(null);
+  const ownsAudioContext = useRef(false);
 
   const recorder = useRef<MediaRecorder | null>(null);
 
-  const sendAudio = useRef(onAudioCaptured);
-  sendAudio.current = onAudioCaptured;
+  const sendAudio = useLatestRef(onAudioCaptured);
 
   const dataHandler = useCallback((event: BlobEvent) => {
     const blob = event.data;
@@ -49,40 +55,44 @@ export const useMicrophone = (props: MicrophoneProps) => {
       });
   }, []);
 
-  const startFftAnalyzer = useCallback((stream: MediaStream) => {
-    if (!audioContext.current) {
-      return;
-    }
-
-    const source = audioContext.current.createMediaStreamSource(stream);
-    analyzerSource.current = source;
-    currentAnalyzer.current = audioContext.current.createAnalyser();
-    currentAnalyzer.current.fftSize = 2048;
-    const bufferLength = currentAnalyzer.current.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    source.connect(currentAnalyzer.current);
-    const draw = () => {
-      if (!currentAnalyzer.current || !audioContext.current) {
+  const startFftAnalyzer = useCallback(
+    (stream: MediaStream) => {
+      if (!audioContext.current) {
         return;
       }
 
-      currentAnalyzer.current.getByteFrequencyData(dataArray);
+      const source = audioContext.current.createMediaStreamSource(stream);
+      analyzerSource.current = source;
+      currentAnalyzer.current = audioContext.current.createAnalyser();
+      currentAnalyzer.current.fftSize = 2048;
+      const bufferLength = currentAnalyzer.current.frequencyBinCount;
 
-      const sampleRate = audioContext.current.sampleRate;
+      // Pre-allocate buffers for zero-allocation FFT analysis
+      const dataArray = new Uint8Array(bufferLength);
+      const barkBuffer = new Array<number>(BARK_BAND_COUNT).fill(0);
 
-      const barkFrequencies = convertLinearFrequenciesToBark(
-        dataArray,
-        sampleRate,
-      );
+      source.connect(currentAnalyzer.current);
+      const draw = () => {
+        if (!currentAnalyzer.current || !audioContext.current) {
+          return;
+        }
 
-      setFft(barkFrequencies);
-      fftAnimationId.current = requestAnimationFrame(draw);
-    };
-    draw();
-  }, []);
+        currentAnalyzer.current.getByteFrequencyData(dataArray);
+
+        const sampleRate = audioContext.current.sampleRate;
+
+        convertLinearFrequenciesToBarkInto(dataArray, sampleRate, barkBuffer);
+
+        fftStore.write(barkBuffer);
+        fftAnimationId.current = requestAnimationFrame(draw);
+      };
+      draw();
+    },
+    [fftStore],
+  );
 
   const start = useCallback(
-    (stream: MediaStream) => {
+    (stream: MediaStream, sharedAudioContext?: AudioContext) => {
       if (!stream) {
         throw new Error('No stream connected');
       }
@@ -93,7 +103,8 @@ export const useMicrophone = (props: MicrophoneProps) => {
 
       currentStream.current = stream;
 
-      const context = new AudioContext();
+      const context = sharedAudioContext ?? new AudioContext();
+      ownsAudioContext.current = !sharedAudioContext;
       audioContext.current = context;
 
       try {
@@ -130,7 +141,9 @@ export const useMicrophone = (props: MicrophoneProps) => {
       currentAnalyzer.current = null;
     }
 
-    if (audioContext.current) {
+    // Only close the AudioContext if this hook created it.
+    // When a shared AudioContext was provided, the caller manages its lifecycle.
+    if (audioContext.current && ownsAudioContext.current) {
       await audioContext.current
         .close()
         .then(() => {
@@ -142,6 +155,8 @@ export const useMicrophone = (props: MicrophoneProps) => {
           // do anything with it.
           return null;
         });
+    } else {
+      audioContext.current = null;
     }
 
     recorder.current?.stop();
@@ -152,28 +167,31 @@ export const useMicrophone = (props: MicrophoneProps) => {
     setIsMuted(false);
   }, [dataHandler]);
 
-  const stopMicWithRetries = async (maxAttempts = 3, delayMs = 500) => {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        await stop();
-        return;
-      } catch (e) {
-        if (attempt < maxAttempts) {
-          await new Promise((res) => setTimeout(res, delayMs));
-        } else {
-          const message = e instanceof Error ? e.message : 'Unknown error';
-          onError?.(
-            `Failed to stop mic after ${maxAttempts} attempts: ${message}`,
-            'mic_closure_failure',
-          );
+  const stopMicWithRetries = useCallback(
+    async (maxAttempts = 3, delayMs = 500) => {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await stop();
+          return;
+        } catch (e) {
+          if (attempt < maxAttempts) {
+            await new Promise((res) => setTimeout(res, delayMs));
+          } else {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            onErrorRef.current?.(
+              `Failed to stop mic after ${maxAttempts} attempts: ${message}`,
+              'mic_closure_failure',
+            );
+          }
         }
       }
-    }
-  };
+    },
+    [stop],
+  );
 
   const mute = useCallback(() => {
     if (currentAnalyzer.current) {
-      setFft(generateEmptyFft());
+      fftStore.clear();
     }
 
     currentStream.current?.getTracks().forEach((track) => {
@@ -182,7 +200,7 @@ export const useMicrophone = (props: MicrophoneProps) => {
 
     isMutedRef.current = true;
     setIsMuted(true);
-  }, []);
+  }, [fftStore]);
 
   const unmute = useCallback(() => {
     currentStream.current?.getTracks().forEach((track) => {
@@ -222,16 +240,19 @@ export const useMicrophone = (props: MicrophoneProps) => {
     if (mimeTypeResult.success) {
       mimeTypeRef.current = mimeTypeResult.mimeType;
     } else {
-      onError(mimeTypeResult.error.message, 'mime_types_not_supported');
+      onErrorRef.current(mimeTypeResult.error.message, 'mime_types_not_supported');
     }
-  }, [onError]);
+  }, []);
 
-  return {
-    start,
-    stop: stopMicWithRetries,
-    mute,
-    unmute,
-    isMuted,
-    fft,
-  };
+  return useMemo(
+    () => ({
+      start,
+      stop: stopMicWithRetries,
+      mute,
+      unmute,
+      isMuted,
+      fftStore,
+    }),
+    [start, stopMicWithRetries, mute, unmute, isMuted, fftStore],
+  );
 };

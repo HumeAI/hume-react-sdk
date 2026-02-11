@@ -1,12 +1,36 @@
 import { convertBase64ToBlob } from 'hume';
-import { useCallback, useRef, useState } from 'react';
-import z from 'zod';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { convertLinearFrequenciesToBark } from './convertFrequencyScale';
-import { generateEmptyFft } from './generateEmptyFft';
+import { convertLinearFrequenciesToBarkInto } from './convertFrequencyScale';
+import { FftStore } from './fftStore';
+import { useLatestRef } from './useLatestRef';
 import type { AudioPlayerErrorReason } from './VoiceProvider';
 import type { AudioOutputMessage } from '../models/messages';
 import { loadAudioWorklet } from '../utils/loadAudioWorklet';
+
+// Worklet message types (replaces Zod schemas)
+interface WorkletStartClipMessage {
+  type: 'start_clip';
+  id: string;
+  index: number;
+}
+interface WorkletEndedMessage {
+  type: 'ended';
+}
+interface WorkletQueueLengthMessage {
+  type: 'queueLength';
+  length: number;
+}
+interface WorkletClosedMessage {
+  type: 'worklet_closed';
+}
+type WorkletMessage =
+  | WorkletStartClipMessage
+  | WorkletEndedMessage
+  | WorkletQueueLengthMessage
+  | WorkletClosedMessage;
+
+const BARK_BAND_COUNT = 24;
 
 export const useSoundPlayer = (props: {
   enableAudioWorklet: boolean;
@@ -17,25 +41,24 @@ export const useSoundPlayer = (props: {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [volume, setVolumeState] = useState<number>(1.0);
-  const [fft, setFft] = useState<number[]>(generateEmptyFft());
+
+  // FFT data is managed outside React state via FftStore.
+  // Components subscribe to it via useSyncExternalStore (see fftStore.ts).
+  const fftStore = useRef(new FftStore()).current;
 
   const audioContext = useRef<AudioContext | null>(null);
+  const ownsAudioContext = useRef(false);
   const analyserNode = useRef<AnalyserNode | null>(null);
   const gainNode = useRef<GainNode | null>(null);
   const workletNode = useRef<AudioWorkletNode | null>(null);
   const isInitialized = useRef(false);
 
   const isProcessing = useRef(false);
-  const frequencyDataIntervalId = useRef<number | null>(null);
+  const fftRafId = useRef<number | null>(null);
 
-  const onPlayAudio = useRef<typeof props.onPlayAudio>(props.onPlayAudio);
-  onPlayAudio.current = props.onPlayAudio;
-
-  const onStopAudio = useRef<typeof props.onStopAudio>(props.onStopAudio);
-  onStopAudio.current = props.onStopAudio;
-
-  const onError = useRef<typeof props.onError>(props.onError);
-  onError.current = props.onError;
+  const onPlayAudio = useLatestRef(props.onPlayAudio);
+  const onStopAudio = useLatestRef(props.onStopAudio);
+  const onError = useLatestRef(props.onError);
 
   const isWorkletActive = useRef(false);
 
@@ -102,6 +125,12 @@ export const useSoundPlayer = (props: {
 
     currentlyPlayingAudioBuffer.current = bufferSource;
 
+    // Pre-allocate buffers for FFT analysis (zero allocations per frame)
+    const frequencyDataBuffer = new Uint8Array(
+      analyserNode.current.frequencyBinCount,
+    );
+    const barkBuffer = new Array<number>(BARK_BAND_COUNT).fill(0);
+
     const updateFrequencyData = () => {
       try {
         const bufferSampleRate = bufferSource.buffer?.sampleRate;
@@ -109,25 +138,24 @@ export const useSoundPlayer = (props: {
         if (!analyserNode.current || typeof bufferSampleRate === 'undefined')
           return;
 
-        const dataArray = new Uint8Array(
-          analyserNode.current.frequencyBinCount,
-        ); // frequencyBinCount is 1/2 of fftSize
-        analyserNode.current.getByteFrequencyData(dataArray); // Using getByteFrequencyData for performance
-
-        const barkFrequencies = convertLinearFrequenciesToBark(
-          dataArray,
+        analyserNode.current.getByteFrequencyData(frequencyDataBuffer);
+        convertLinearFrequenciesToBarkInto(
+          frequencyDataBuffer,
           bufferSampleRate,
+          barkBuffer,
         );
-        setFft(() => barkFrequencies);
-      } catch (e) {
-        setFft(generateEmptyFft());
+        fftStore.write(barkBuffer);
+      } catch {
+        fftStore.clear();
       }
     };
 
-    frequencyDataIntervalId.current = window.setInterval(
-      updateFrequencyData,
-      5,
-    );
+    // Use requestAnimationFrame instead of setInterval(5ms) for display-rate updates
+    const pollFft = () => {
+      updateFrequencyData();
+      fftRafId.current = requestAnimationFrame(pollFft);
+    };
+    fftRafId.current = requestAnimationFrame(pollFft);
 
     bufferSource.start(0);
     if (nextClip.index === 0) {
@@ -135,11 +163,11 @@ export const useSoundPlayer = (props: {
     }
 
     bufferSource.onended = () => {
-      if (frequencyDataIntervalId.current) {
-        clearInterval(frequencyDataIntervalId.current);
-        frequencyDataIntervalId.current = null;
+      if (fftRafId.current) {
+        cancelAnimationFrame(fftRafId.current);
+        fftRafId.current = null;
       }
-      setFft(generateEmptyFft());
+      fftStore.clear();
       bufferSource.disconnect();
       isProcessing.current = false;
       setIsPlaying(false);
@@ -147,14 +175,15 @@ export const useSoundPlayer = (props: {
       currentlyPlayingAudioBuffer.current = null;
       playNextClip();
     };
-  }, []);
+  }, [fftStore]);
 
   const initPlayer = useCallback(
-    async (speakerDeviceId?: string) => {
+    async (speakerDeviceId?: string, sharedAudioContext?: AudioContext) => {
       isWorkletActive.current = true;
 
       try {
-        const initAudioContext = new AudioContext();
+        const initAudioContext = sharedAudioContext ?? new AudioContext();
+        ownsAudioContext.current = !sharedAudioContext;
         audioContext.current = initAudioContext;
 
         // Set the speaker device if specified and supported
@@ -205,57 +234,51 @@ export const useSoundPlayer = (props: {
           workletNode.current = worklet;
 
           worklet.port.onmessage = (e: MessageEvent) => {
-            const playingEvent = z
-              .object({
-                type: z.literal('start_clip'),
-                id: z.string(),
-                index: z.number(),
-              })
-              .safeParse(e.data);
+            const data = e.data as WorkletMessage;
 
-            if (playingEvent.success) {
-              if (playingEvent.data.index === 0) {
-                onPlayAudio.current(playingEvent.data.id);
-              }
-              setIsPlaying(true);
-            }
+            switch (data.type) {
+              case 'start_clip':
+                if (data.index === 0) {
+                  onPlayAudio.current(data.id);
+                }
+                setIsPlaying(true);
+                break;
 
-            const endedEvent = z
-              .object({ type: z.literal('ended') })
-              .safeParse(e.data);
-            if (endedEvent.success) {
-              setIsPlaying(false);
-              onStopAudio.current('stream');
-            }
-
-            const queueLengthEvent = z
-              .object({ type: z.literal('queueLength'), length: z.number() })
-              .safeParse(e.data);
-            if (queueLengthEvent.success) {
-              if (queueLengthEvent.data.length === 0) {
+              case 'ended':
                 setIsPlaying(false);
-              }
-              setQueueLength(queueLengthEvent.data.length);
-            }
+                onStopAudio.current('stream');
+                break;
 
-            const closedEvent = z
-              .object({ type: z.literal('worklet_closed') })
-              .safeParse(e.data);
-            if (closedEvent.success) {
-              isWorkletActive.current = false;
+              case 'queueLength':
+                if (data.length === 0) {
+                  setIsPlaying(false);
+                }
+                setQueueLength(data.length);
+                break;
+
+              case 'worklet_closed':
+                isWorkletActive.current = false;
+                break;
             }
           };
 
-          frequencyDataIntervalId.current = window.setInterval(() => {
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
+          // Pre-allocate buffers for FFT analysis (zero allocations per frame)
+          const frequencyDataBuffer = new Uint8Array(analyser.frequencyBinCount);
+          const barkBuffer = new Array<number>(BARK_BAND_COUNT).fill(0);
 
-            const barkFrequencies = convertLinearFrequenciesToBark(
-              dataArray,
+          // Use requestAnimationFrame instead of setInterval(5ms) for display-rate updates
+          const pollFft = () => {
+            analyser.getByteFrequencyData(frequencyDataBuffer);
+            convertLinearFrequenciesToBarkInto(
+              frequencyDataBuffer,
               initAudioContext.sampleRate,
+              barkBuffer,
             );
-            setFft(() => barkFrequencies);
-          }, 5);
+            fftStore.write(barkBuffer);
+            fftRafId.current = requestAnimationFrame(pollFft);
+          };
+          fftRafId.current = requestAnimationFrame(pollFft);
+
           isInitialized.current = true;
         } else {
           isInitialized.current = true;
@@ -267,7 +290,7 @@ export const useSoundPlayer = (props: {
         );
       }
     },
-    [props.enableAudioWorklet],
+    [props.enableAudioWorklet, fftStore],
   );
 
   const convertToAudioBuffer = useCallback(
@@ -421,13 +444,14 @@ export const useSoundPlayer = (props: {
     setIsPlaying(false);
     setIsAudioMuted(false);
     setVolumeState(1.0);
-    setFft(generateEmptyFft());
+    fftStore.clear();
 
     chunkBufferQueues.current = {};
     lastQueuedChunk.current = null;
 
-    if (frequencyDataIntervalId.current) {
-      window.clearInterval(frequencyDataIntervalId.current);
+    if (fftRafId.current) {
+      cancelAnimationFrame(fftRafId.current);
+      fftRafId.current = null;
     }
 
     if (props.enableAudioWorklet) {
@@ -476,7 +500,9 @@ export const useSoundPlayer = (props: {
       analyserNode.current = null;
     }
 
-    if (audioContext.current) {
+    // Only close the AudioContext if this hook created it.
+    // When a shared AudioContext was provided, the caller manages its lifecycle.
+    if (audioContext.current && ownsAudioContext.current) {
       await audioContext.current
         .close()
         .then(() => {
@@ -488,27 +514,32 @@ export const useSoundPlayer = (props: {
           // do anything with it.
           return null;
         });
+    } else {
+      audioContext.current = null;
     }
-  }, [props.enableAudioWorklet]);
+  }, [props.enableAudioWorklet, fftStore]);
 
-  const stopAllWithRetries = async (maxAttempts = 3, delayMs = 500) => {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        await stopAll();
-        return;
-      } catch (e) {
-        if (attempt < maxAttempts) {
-          await new Promise((res) => setTimeout(res, delayMs));
-        } else {
-          const message = e instanceof Error ? e.message : 'Unknown error';
-          onError.current?.(
-            `Failed to stop audio player after ${maxAttempts} attempts: ${message}`,
-            'audio_player_closure_failure',
-          );
+  const stopAllWithRetries = useCallback(
+    async (maxAttempts = 3, delayMs = 500) => {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          await stopAll();
+          return;
+        } catch (e) {
+          if (attempt < maxAttempts) {
+            await new Promise((res) => setTimeout(res, delayMs));
+          } else {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            onError.current?.(
+              `Failed to stop audio player after ${maxAttempts} attempts: ${message}`,
+              'audio_player_closure_failure',
+            );
+          }
         }
       }
-    }
-  };
+    },
+    [stopAll],
+  );
 
   const clearQueue = useCallback(() => {
     if (props.enableAudioWorklet) {
@@ -528,8 +559,8 @@ export const useSoundPlayer = (props: {
 
     isProcessing.current = false;
     setIsPlaying(false);
-    setFft(generateEmptyFft());
-  }, [props.enableAudioWorklet]);
+    fftStore.clear();
+  }, [props.enableAudioWorklet, fftStore]);
 
   const setVolume = useCallback(
     (newLevel: number) => {
@@ -562,18 +593,34 @@ export const useSoundPlayer = (props: {
     }
   }, [volume]);
 
-  return {
-    addToQueue,
-    fft,
-    initPlayer,
-    isPlaying,
-    isAudioMuted,
-    muteAudio,
-    unmuteAudio,
-    stopAll: stopAllWithRetries,
-    clearQueue,
-    volume,
-    setVolume,
-    queueLength,
-  };
+  return useMemo(
+    () => ({
+      addToQueue,
+      fftStore,
+      initPlayer,
+      isPlaying,
+      isAudioMuted,
+      muteAudio,
+      unmuteAudio,
+      stopAll: stopAllWithRetries,
+      clearQueue,
+      volume,
+      setVolume,
+      queueLength,
+    }),
+    [
+      addToQueue,
+      fftStore,
+      initPlayer,
+      isPlaying,
+      isAudioMuted,
+      muteAudio,
+      unmuteAudio,
+      stopAllWithRetries,
+      clearQueue,
+      volume,
+      setVolume,
+      queueLength,
+    ],
+  );
 };

@@ -1,4 +1,6 @@
 export * from './lib/connection-message';
+export * from './lib/fftStore';
+export * from './lib/useCallDuration';
 export * from './lib/useMicrophoneStream';
 export * from './lib/useMicrophone';
 export * from './lib/useSoundPlayer';

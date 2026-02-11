@@ -10,25 +10,37 @@ const barkCenterFrequencies = [
 const minValue = 0;
 const maxValue = 255;
 
+/**
+ * Zero-allocation variant: writes results into a pre-allocated `out` buffer.
+ * `out` must have length >= 24.
+ */
+export function convertLinearFrequenciesToBarkInto(
+  linearData: Uint8Array,
+  sampleRate: number,
+  out: number[],
+): void {
+  const maxFrequency = sampleRate / 2;
+  const frequencyResolution = maxFrequency / linearData.length;
+
+  for (let i = 0; i < barkCenterFrequencies.length; i++) {
+    const barkFreq = barkCenterFrequencies[i]!;
+    const linearDataIndex = Math.round(barkFreq / frequencyResolution);
+    if (linearDataIndex >= 0 && linearDataIndex < linearData.length) {
+      out[i] =
+        (((linearData[linearDataIndex] ?? 0) - minValue) /
+          (maxValue - minValue)) *
+        2;
+    } else {
+      out[i] = 0;
+    }
+  }
+}
+
 export function convertLinearFrequenciesToBark(
   linearData: Uint8Array,
   sampleRate: number,
 ): number[] {
-  const maxFrequency = sampleRate / 2;
-  const frequencyResolution = maxFrequency / linearData.length;
-
-  const barkFrequencies = barkCenterFrequencies.map((barkFreq) => {
-    const linearDataIndex = Math.round(barkFreq / frequencyResolution);
-    if (linearDataIndex >= 0 && linearDataIndex < linearData.length) {
-      return (
-        (((linearData[linearDataIndex] ?? 0) - minValue) /
-          (maxValue - minValue)) *
-        2
-      );
-    } else {
-      return 0;
-    }
-  });
-
-  return barkFrequencies;
+  const out = new Array<number>(barkCenterFrequencies.length);
+  convertLinearFrequenciesToBarkInto(linearData, sampleRate, out);
+  return out;
 }

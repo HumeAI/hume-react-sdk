@@ -1,5 +1,5 @@
 import type { Hume } from 'hume';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import type { CloseEvent, ConnectionMessage } from './connection-message';
 import type {
@@ -18,7 +18,10 @@ export const useMessages = ({
   sendMessageToParent?: (message: JSONMessage) => void;
   messageHistoryLimit: number;
 }) => {
-  const [voiceMessageMap, setVoiceMessageMap] = useState<
+  // voiceMessageMap is a lookup buffer consumed only inside onPlayAudio.
+  // It is never rendered, so a ref avoids unnecessary re-renders and
+  // keeps onPlayAudio's dependency array stable.
+  const voiceMessageMapRef = useRef<
     Record<string, AssistantTranscriptMessage>
   >({});
 
@@ -77,73 +80,39 @@ export const useMessages = ({
     );
   }, []);
 
-  const findMostRecentUserMessage = useCallback(
-    (allMessages: typeof messages) => {
-      let mostRecentUserMessage: UserTranscriptMessage | undefined;
-      let mostRecentUserMessageIndex: number | undefined;
-      for (let i = allMessages.length - 1; i >= 0; i--) {
-        const m = allMessages[i];
-        if (m && m.type === 'user_message') {
-          mostRecentUserMessage = m;
-          mostRecentUserMessageIndex = i;
-          break;
-        }
+  /**
+   * Adds a message to the messages array, keeping any interim user message
+   * at the end. Uses a fast path: check the last element first since
+   * interim user messages are almost always at the end by design.
+   */
+  const addMessageKeepingInterimLast = useCallback(
+    (prev: Array<JSONMessage | ConnectionMessage>, messageToAdd: JSONMessage) => {
+      const last = prev[prev.length - 1];
+
+      // Fast path: if the last message is an interim user message, insert
+      // the new message before it and move the interim to the end.
+      if (last && last.type === 'user_message' && last.interim === true) {
+        // Build in a single pass: all but the last, then new message, then interim
+        const result = prev.slice(0, -1);
+        result.push(messageToAdd, last);
+        return keepLastN(messageHistoryLimit, result);
       }
-      return { mostRecentUserMessage, mostRecentUserMessageIndex };
-    },
-    [],
-  );
 
-  const updateMessagesArray = useCallback(
-    (messageToAdd: JSONMessage) => {
-      setMessages((prev) => {
-        // If there is an interim user message, move it to the end of the array and insert the current
-        // message into the penultimate position.
-        // Otherwise, add the message to the end of the array.
-        const { mostRecentUserMessage, mostRecentUserMessageIndex } =
-          findMostRecentUserMessage(prev);
-
-        if (mostRecentUserMessage?.interim === true) {
-          // Move interim user messages to the end of the array
-          const nextMessages = prev.filter((m, idx) => {
-            if (idx === mostRecentUserMessageIndex) {
-              return false;
-            }
-            return true;
-          });
-          return keepLastN(
-            messageHistoryLimit,
-            nextMessages.concat([messageToAdd, mostRecentUserMessage]),
-          );
-        }
-        return keepLastN(messageHistoryLimit, prev.concat([messageToAdd]));
-      });
+      // No interim message at the end — simple append
+      return keepLastN(messageHistoryLimit, prev.concat([messageToAdd]));
     },
-    [findMostRecentUserMessage, messageHistoryLimit],
+    [messageHistoryLimit],
   );
 
   const onMessage = useCallback(
     (message: JSONMessage) => {
-      /* 
-      1. message comes in from the backend
-        - if the message IS NOT AssistantTranscriptMessage, store in `messages` immediately  
-        - if the message is an AssistantTranscriptMessage, stored in `voiceMessageMap`
-      2. audio clip plays
-        - find the AssistantTranscriptMessage with a matching ID, and store it in `messages`
-        - remove the AssistantTranscriptMessage from `voiceMessageMap`
-    */
       switch (message.type) {
         case 'assistant_message':
-          // for assistant messages, `sendMessageToParent` is called in `onPlayAudio`
-          // in order to line up the transcript event with the correct audio clip
-          setVoiceMessageMap((prev) => ({
-            ...prev,
-            [`${message.id}`]: message,
-          }));
+          // For assistant messages, `sendMessageToParent` is called in `onPlayAudio`
+          // to line up the transcript event with the correct audio clip.
+          voiceMessageMapRef.current[message.id] = message;
           break;
         case 'user_message':
-          // Replace interim user message with current message
-          // If there are no interim user messages, add the current message to the end of the messages array
           sendMessageToParent?.(message);
 
           if (message.interim === false) {
@@ -154,20 +123,16 @@ export const useMessages = ({
             if (prev.length === 0) {
               return keepLastN(messageHistoryLimit, [message]);
             }
-            const { mostRecentUserMessage, mostRecentUserMessageIndex } =
-              findMostRecentUserMessage(prev);
-            if (mostRecentUserMessage?.interim === true) {
-              const nextMessages = prev.filter((m, idx) => {
-                if (idx === mostRecentUserMessageIndex) {
-                  return false;
-                }
-                return true;
-              });
-              return keepLastN(
-                messageHistoryLimit,
-                nextMessages.concat([message]),
-              );
+
+            const last = prev[prev.length - 1];
+
+            // Fast path: interim user message is the last element
+            if (last && last.type === 'user_message' && last.interim === true) {
+              const result = prev.slice(0, -1);
+              result.push(message);
+              return keepLastN(messageHistoryLimit, result);
             }
+
             return keepLastN(messageHistoryLimit, prev.concat([message]));
           });
 
@@ -179,17 +144,16 @@ export const useMessages = ({
         case 'tool_error':
         case 'assistant_end':
           sendMessageToParent?.(message);
-          updateMessagesArray(message);
+          setMessages((prev) => addMessageKeepingInterimLast(prev, message));
           break;
         case 'assistant_prosody':
           setLastAssistantProsodyMessage(message);
           sendMessageToParent?.(message);
-          updateMessagesArray(message);
-
+          setMessages((prev) => addMessageKeepingInterimLast(prev, message));
           break;
         case 'chat_metadata':
           sendMessageToParent?.(message);
-          updateMessagesArray(message);
+          setMessages((prev) => addMessageKeepingInterimLast(prev, message));
           setChatMetadata(message);
           break;
         default:
@@ -197,31 +161,25 @@ export const useMessages = ({
       }
     },
     [
-      findMostRecentUserMessage,
+      addMessageKeepingInterimLast,
       messageHistoryLimit,
       sendMessageToParent,
-      updateMessagesArray,
     ],
   );
 
   const onPlayAudio = useCallback(
     (id: string) => {
-      const matchingTranscript = voiceMessageMap[id];
+      const matchingTranscript = voiceMessageMapRef.current[id];
       if (matchingTranscript) {
         sendMessageToParent?.(matchingTranscript);
         setLastVoiceMessage(matchingTranscript);
-        updateMessagesArray(matchingTranscript);
+        setMessages((prev) => addMessageKeepingInterimLast(prev, matchingTranscript));
 
-        // remove the message from the map to ensure we don't
-        // accidentally push it to the messages array more than once
-        setVoiceMessageMap((prev) => {
-          const newMap = { ...prev };
-          delete newMap[id];
-          return newMap;
-        });
+        // Remove from the map to ensure we don't push it more than once
+        delete voiceMessageMapRef.current[id];
       }
     },
-    [voiceMessageMap, sendMessageToParent, updateMessagesArray],
+    [sendMessageToParent, addMessageKeepingInterimLast],
   );
 
   const clearMessages = useCallback(() => {
@@ -229,21 +187,36 @@ export const useMessages = ({
     setLastVoiceMessage(null);
     setLastUserMessage(null);
     setLastAssistantProsodyMessage(null);
-    setVoiceMessageMap({});
+    voiceMessageMapRef.current = {};
     setChatMetadata(null);
   }, []);
 
-  return {
-    createConnectMessage,
-    createDisconnectMessage,
-    createSessionSettingsMessage,
-    onMessage,
-    onPlayAudio,
-    clearMessages,
-    messages,
-    lastVoiceMessage,
-    lastUserMessage,
-    lastAssistantProsodyMessage,
-    chatMetadata,
-  };
+  return useMemo(
+    () => ({
+      createConnectMessage,
+      createDisconnectMessage,
+      createSessionSettingsMessage,
+      onMessage,
+      onPlayAudio,
+      clearMessages,
+      messages,
+      lastVoiceMessage,
+      lastUserMessage,
+      lastAssistantProsodyMessage,
+      chatMetadata,
+    }),
+    [
+      createConnectMessage,
+      createDisconnectMessage,
+      createSessionSettingsMessage,
+      onMessage,
+      onPlayAudio,
+      clearMessages,
+      messages,
+      lastVoiceMessage,
+      lastUserMessage,
+      lastAssistantProsodyMessage,
+      chatMetadata,
+    ],
+  );
 };
