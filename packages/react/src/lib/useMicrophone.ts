@@ -24,7 +24,6 @@ export const useMicrophone = (props: MicrophoneProps) => {
   const isMutedRef = useRef(isMuted);
   const currentStream = useRef<MediaStream | null>(null);
 
-  // FFT data is managed outside React state via FftStore.
   const fftStore = useRef(new FftStore()).current;
 
   const currentAnalyzer = useRef<AnalyserNode | null>(null);
@@ -67,7 +66,6 @@ export const useMicrophone = (props: MicrophoneProps) => {
       currentAnalyzer.current.fftSize = 2048;
       const bufferLength = currentAnalyzer.current.frequencyBinCount;
 
-      // Pre-allocate buffers for zero-allocation FFT analysis
       const dataArray = new Uint8Array(bufferLength);
       const barkBuffer = new Array<number>(BARK_BAND_COUNT).fill(0);
 
@@ -141,8 +139,6 @@ export const useMicrophone = (props: MicrophoneProps) => {
       currentAnalyzer.current = null;
     }
 
-    // Only close the AudioContext if this hook created it.
-    // When a shared AudioContext was provided, the caller manages its lifecycle.
     if (audioContext.current && ownsAudioContext.current) {
       await audioContext.current
         .close()

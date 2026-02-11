@@ -18,9 +18,6 @@ export const useMessages = ({
   sendMessageToParent?: (message: JSONMessage) => void;
   messageHistoryLimit: number;
 }) => {
-  // voiceMessageMap is a lookup buffer consumed only inside onPlayAudio.
-  // It is never rendered, so a ref avoids unnecessary re-renders and
-  // keeps onPlayAudio's dependency array stable.
   const voiceMessageMapRef = useRef<Record<string, AssistantTranscriptMessage>>(
     {},
   );
@@ -80,11 +77,6 @@ export const useMessages = ({
     );
   }, []);
 
-  /**
-   * Adds a message to the messages array, keeping any interim user message
-   * at the end. Uses a fast path: check the last element first since
-   * interim user messages are almost always at the end by design.
-   */
   const addMessageKeepingInterimLast = useCallback(
     (
       prev: Array<JSONMessage | ConnectionMessage>,
@@ -92,16 +84,12 @@ export const useMessages = ({
     ) => {
       const last = prev[prev.length - 1];
 
-      // Fast path: if the last message is an interim user message, insert
-      // the new message before it and move the interim to the end.
       if (last && last.type === 'user_message' && last.interim === true) {
-        // Build in a single pass: all but the last, then new message, then interim
         const result = prev.slice(0, -1);
         result.push(messageToAdd, last);
         return keepLastN(messageHistoryLimit, result);
       }
 
-      // No interim message at the end — simple append
       return keepLastN(messageHistoryLimit, prev.concat([messageToAdd]));
     },
     [messageHistoryLimit],
@@ -131,7 +119,6 @@ export const useMessages = ({
 
             const last = prev[prev.length - 1];
 
-            // Fast path: interim user message is the last element
             if (last && last.type === 'user_message' && last.interim === true) {
               const result = prev.slice(0, -1);
               result.push(message);

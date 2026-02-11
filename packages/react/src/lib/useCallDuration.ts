@@ -1,14 +1,6 @@
 import { intervalToDuration } from 'date-fns';
 import { useCallback, useEffect, useRef } from 'react';
 
-/**
- * A lightweight external store for the call duration timestamp.
- * Updates at 2Hz (every 500ms) but only notifies subscribers when
- * the formatted string actually changes — which is at most once per second.
- *
- * Designed for use with useSyncExternalStore so that components
- * displaying the timer re-render independently of other VoiceProvider state.
- */
 class CallDurationStore {
   private _snapshot: string | null = null;
 

@@ -10,10 +10,6 @@ const barkCenterFrequencies = [
 const minValue = 0;
 const maxValue = 255;
 
-/**
- * Zero-allocation variant: writes results into a pre-allocated `out` buffer.
- * `out` must have length >= 24.
- */
 export function convertLinearFrequenciesToBarkInto(
   linearData: Uint8Array,
   sampleRate: number,

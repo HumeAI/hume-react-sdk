@@ -42,8 +42,6 @@ export const useSoundPlayer = (props: {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [volume, setVolumeState] = useState<number>(1.0);
 
-  // FFT data is managed outside React state via FftStore.
-  // Components subscribe to it via useSyncExternalStore (see fftStore.ts).
   const fftStore = useRef(new FftStore()).current;
 
   const audioContext = useRef<AudioContext | null>(null);
@@ -125,7 +123,6 @@ export const useSoundPlayer = (props: {
 
     currentlyPlayingAudioBuffer.current = bufferSource;
 
-    // Pre-allocate buffers for FFT analysis (zero allocations per frame)
     const frequencyDataBuffer = new Uint8Array(
       analyserNode.current.frequencyBinCount,
     );
@@ -150,7 +147,6 @@ export const useSoundPlayer = (props: {
       }
     };
 
-    // Use requestAnimationFrame instead of setInterval(5ms) for display-rate updates
     const pollFft = () => {
       updateFrequencyData();
       fftRafId.current = requestAnimationFrame(pollFft);
@@ -502,8 +498,6 @@ export const useSoundPlayer = (props: {
       analyserNode.current = null;
     }
 
-    // Only close the AudioContext if this hook created it.
-    // When a shared AudioContext was provided, the caller manages its lifecycle.
     if (audioContext.current && ownsAudioContext.current) {
       await audioContext.current
         .close()

@@ -177,20 +177,12 @@ export const useVoice = () => {
   return ctx;
 };
 
-/**
- * Context holding stable references to external store instances.
- * Never triggers re-renders on its own; consumers subscribe via useSyncExternalStore.
- */
 const StoresContext = createContext<{
   playerFftStore: FftStore;
   micFftStore: FftStore;
   callDurationStore: CallDurationStore;
 } | null>(null);
 
-/**
- * Subscribe to the audio player's FFT data at display refresh rate (~60Hz).
- * Must be used within a VoiceProvider.
- */
 export const usePlayerFft = (): FftSnapshot => {
   const ctx = useContext(StoresContext);
   if (!ctx) {
@@ -199,10 +191,6 @@ export const usePlayerFft = (): FftSnapshot => {
   return useFftSubscription(ctx.playerFftStore);
 };
 
-/**
- * Subscribe to the microphone's FFT data at display refresh rate (~60Hz).
- * Must be used within a VoiceProvider.
- */
 export const useMicFft = (): FftSnapshot => {
   const ctx = useContext(StoresContext);
   if (!ctx) {
@@ -211,10 +199,6 @@ export const useMicFft = (): FftSnapshot => {
   return useFftSubscription(ctx.micFftStore);
 };
 
-/**
- * Subscribe to the call duration timestamp (~1Hz updates).
- * Must be used within a VoiceProvider.
- */
 export const useCallDurationTimestamp = (): string | null => {
   const ctx = useContext(StoresContext);
   if (!ctx) {
@@ -342,9 +326,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     },
   });
 
-  // Destructure stable callbacks from hooks to avoid depending on entire
-  // hook return objects (which change when state values like isPlaying or
-  // messages change). This keeps the callbacks below maximally stable.
   const {
     onMessage: messageStoreOnMessage,
     createConnectMessage,
@@ -615,8 +596,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
 
-      // Create a single shared AudioContext for both player and microphone.
-      // This avoids hitting browser limits (typically 6 AudioContexts per page).
       const sharedCtx = new AudioContext();
       sharedAudioContextRef.current = sharedCtx;
 
@@ -689,8 +668,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       }
       resourceStatusRef.current.mic = 'connected';
 
-      // Everything is now initialized (socket, audio player, microphone),
-      // so set the global connected status
       setStatus({ value: 'connected' });
       isConnectingRef.current = false;
     },
@@ -742,7 +719,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     await playerStopAll();
     resourceStatusRef.current.audioPlayer = 'disconnected';
 
-    // SHARED AUDIO CONTEXT - close after both mic and player are done
     if (sharedAudioContextRef.current) {
       await sharedAudioContextRef.current.close().catch(() => {
         // .close() rejects if already closed; safe to ignore.
