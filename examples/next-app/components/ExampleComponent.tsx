@@ -1,6 +1,6 @@
 'use client';
 
-import { useVoice } from '@humeai/voice-react';
+import { useCallDurationTimestamp, useVoice } from '@humeai/voice-react';
 import { useEffect, useState } from 'react';
 import { match } from 'ts-pattern';
 
@@ -20,7 +20,8 @@ export const ExampleComponent = ({
   accessToken: string;
   configId?: string;
 }) => {
-  const { connect, disconnect, status, callDurationTimestamp } = useVoice();
+  const { connect, disconnect, status } = useVoice();
+  const callDurationTimestamp = useCallDurationTimestamp();
 
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>(
     [],

@@ -99,8 +99,6 @@ type ResourceStatus =
 export type VoiceContextType = {
   connect: (options: ConnectOptions) => Promise<void>;
   disconnect: () => Promise<void>;
-  /** @deprecated Use `usePlayerFft()` for real-time FFT data instead. This value is stale and only updates when other context values change. */
-  fft: number[];
   isMuted: boolean;
   isAudioMuted: boolean;
   isPlaying: boolean;
@@ -125,15 +123,11 @@ export type VoiceContextType = {
   pauseAssistant: () => void;
   resumeAssistant: () => void;
   status: VoiceStatus;
-  /** @deprecated Use `useMicFft()` for real-time FFT data instead. This value is stale and only updates when other context values change. */
-  micFft: number[];
   error: VoiceError | null;
   isAudioError: boolean;
   isError: boolean;
   isMicrophoneError: boolean;
   isSocketError: boolean;
-  /** @deprecated Use `useCallDurationTimestamp` for real-time call duration instead. This value is stale and only updates when other context values change. */
-  callDurationTimestamp: string | null;
   toolStatusStore: ReturnType<typeof useToolStatus>['store'];
   chatMetadata: ChatMetadataMessage | null;
   playerQueueLength: number;
@@ -880,8 +874,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       ({
         connect,
         disconnect,
-        fft: player.fftStore.getSnapshot() as number[],
-        micFft: mic.fftStore.getSnapshot() as number[],
         isMuted: mic.isMuted,
         isAudioMuted: player.isAudioMuted,
         isPlaying: player.isPlaying,
@@ -907,7 +899,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         isError,
         isMicrophoneError,
         isSocketError,
-        callDurationTimestamp: callDurationStore.getSnapshot(),
         toolStatusStore: toolStatus.store,
         chatMetadata: messageStore.chatMetadata,
         playerQueueLength: player.queueLength,

@@ -226,18 +226,6 @@ Describes whether the assistant audio is currently playing.
 
 Boolean that describes whether the assistant is paused. When paused, the assistant will still be listening, but will not send a response until it is resumed.
 
-#### `fft`: number[]
-
-> **Deprecated.** Use the `usePlayerFft()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
-
-Audio FFT values for the assistant audio output.
-
-#### `micFft`: number[]
-
-> **Deprecated.** Use the `useMicFft()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
-
-Audio FFT values for microphone input.
-
 #### `messages`: [UserTranscriptMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/UserMessage.ts) | [AssistantTranscriptMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/AssistantMessage.ts) | [ConnectionMessage](https://github.com/HumeAI/empathic-voice-api-js/blob/8a4f9b87870c68650cde73a818edd093716c59fd/packages/react/src/lib/connection-message.ts) | [UserInterruptionMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/UserInterruption.ts) | [JSONErrorMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/WebSocketError.ts)
 
 Message history of the current conversation. By default, `messages` does not include interim user messages when `verboseTranscription` is set to true on the `VoiceProvider` (`verboseTranscription` is true by default). To access interim messages, you can define a custom `onMessage` callback on your `VoiceProvider`.
@@ -277,12 +265,6 @@ If true, a microphone error has occurred.
 #### `isSocketError`: boolean
 
 If true, there was an error connecting to the websocket.
-
-#### `callDurationTimestamp`: string | null
-
-> **Deprecated.** Use the `useCallDurationTimestamp()` hook instead for live updates. This property is a stale snapshot that only updates when other context values change.
-
-The length of a call. This value persists after the conversation has ended.
 
 #### `toolStatusStore`: Record<string, { call?: [ToolCall](); resolved?: [ToolResponse]() | [ToolError]() }>
 
