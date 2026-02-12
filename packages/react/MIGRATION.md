@@ -62,3 +62,91 @@ No changes are needed if you want to benefit from the new audio quality improvem
 - **Cleaner separation of concerns:** session-specific settings do not belong on a component that represents the entire app — moving them to `connect()` avoids unnecessary rerenders and easier state management, especially when refreshing access tokens or switching between configs.
 - **Improved clarity:** asynchronous disconnects help you manage resource cleanup more predictably.
 - **Improved audio:** AudioWorklet improves the quality audio playback, while still offering a fallback for compatibility.
+
+---
+
+## Migrating from 0.2.x to 0.3.0
+
+This guide helps you migrate to **@humeai/voice-react** 0.3.0, which moves high-frequency data (FFT and call duration) off the main `useVoice()` context and into dedicated hooks for better performance and fewer unnecessary rerenders.
+
+### 1. `fft`, `micFft`, and `callDurationTimestamp` Removed from `useVoice()`
+
+**What changed**
+
+- The following properties have been removed from the object returned by `useVoice()`:
+  - `fft` — previously held FFT values for the assistant audio output
+  - `micFft` — previously held FFT values for microphone input
+  - `callDurationTimestamp` — previously held the formatted call duration string
+
+- These values are high-frequency or time-based and caused the entire voice context to update very often when consumed from `useVoice()`, leading to unnecessary rerenders in every component that used the hook.
+
+**How to migrate**
+
+Use the new granular hooks instead of reading these from `useVoice()`:
+
+| Previously (`useVoice()`) | Use instead |
+|---------------------------|-------------|
+| `const { fft } = useVoice()` | `const fft = usePlayerFft()` |
+| `const { micFft } = useVoice()` | `const micFft = useMicFft()` |
+| `const { callDurationTimestamp } = useVoice()` | `const callDurationTimestamp = useCallDurationTimestamp()` |
+
+Each of these hooks must be used within a `VoiceProvider`. They subscribe via `useSyncExternalStore` so only components that use a given hook rerender when that data changes.
+
+**Example (before)**
+
+```tsx
+import { useVoice } from '@humeai/voice-react';
+
+function Waveform() {
+  const { fft, micFft, callDurationTimestamp } = useVoice();
+  return (
+    <>
+      <Visualization data={fft} />
+      <MicVisualization data={micFft} />
+      <span>{callDurationTimestamp ?? '0:00'}</span>
+    </>
+  );
+}
+```
+
+**Example (after)**
+
+```tsx
+import {
+  useVoice,
+  usePlayerFft,
+  useMicFft,
+  useCallDurationTimestamp,
+} from '@humeai/voice-react';
+
+function Waveform() {
+  const fft = usePlayerFft();
+  const micFft = useMicFft();
+  const callDurationTimestamp = useCallDurationTimestamp();
+  return (
+    <>
+      <Visualization data={fft} />
+      <MicVisualization data={micFft} />
+      <span>{callDurationTimestamp ?? '0:00'}</span>
+    </>
+  );
+}
+```
+
+### 2. FFT and Call Duration Types
+
+**What changed**
+
+- `usePlayerFft()` and `useMicFft()` return `readonly number[]` (not `number[]`). This reflects that the arrays are shared and must not be mutated.
+- `useCallDurationTimestamp()` returns `string | null`, unchanged in meaning; it is updated at ~1 Hz during an active call.
+
+**How to migrate**
+
+- If you pass FFT data to a component that typed the prop as `number[]`, update the prop type to `readonly number[]` (e.g. `fft: readonly number[]`) so it accepts the return type of the new hooks.
+- No change needed for call duration if you already treated it as `string | null`.
+
+### 3. Why These Changes?
+
+- **Performance:** High-frequency FFT updates no longer trigger rerenders in components that only need other voice state (e.g. `status`, `messages`, `connect`). Only components that use `usePlayerFft()`, `useMicFft()`, or `useCallDurationTimestamp()` subscribe to that data.
+- **Stable context:** The main `VoiceContext` from `useVoice()` changes less often, so consumers that do not use FFT or call duration avoid extra renders.
+- **Clearer API:** FFT and call duration are explicitly “display/visualization” data and are now accessed via dedicated hooks.
