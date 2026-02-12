@@ -226,14 +226,6 @@ Describes whether the assistant audio is currently playing.
 
 Boolean that describes whether the assistant is paused. When paused, the assistant will still be listening, but will not send a response until it is resumed.
 
-#### `fft`: number[]
-
-Audio FFT values for the assistant audio output.
-
-#### `micFft`: number[]
-
-Audio FFT values for microphone input.
-
 #### `messages`: [UserTranscriptMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/UserMessage.ts) | [AssistantTranscriptMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/AssistantMessage.ts) | [ConnectionMessage](https://github.com/HumeAI/empathic-voice-api-js/blob/8a4f9b87870c68650cde73a818edd093716c59fd/packages/react/src/lib/connection-message.ts) | [UserInterruptionMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/UserInterruption.ts) | [JSONErrorMessage](https://github.com/HumeAI/hume-typescript-sdk/blob/ac89e41e45a925f9861eb6d5a1335ab51d5a1c94/src/api/resources/empathicVoice/types/WebSocketError.ts)
 
 Message history of the current conversation. By default, `messages` does not include interim user messages when `verboseTranscription` is set to true on the `VoiceProvider` (`verboseTranscription` is true by default). To access interim messages, you can define a custom `onMessage` callback on your `VoiceProvider`.
@@ -274,10 +266,6 @@ If true, a microphone error has occurred.
 
 If true, there was an error connecting to the websocket.
 
-#### `callDurationTimestamp`: string | null
-
-The length of a call. This value persists after the conversation has ended.
-
 #### `toolStatusStore`: Record<string, { call?: [ToolCall](); resolved?: [ToolResponse]() | [ToolError]() }>
 
 A map of tool call IDs to their associated tool messages.
@@ -289,6 +277,49 @@ Metadata about the current chat, including chat ID, chat group ID, and request I
 #### `playerQueueLength`: number
 
 The number of assistant audio clips that are queued up, including the clip that is currently playing.
+
+### Granular Hooks
+
+These hooks subscribe directly to high-frequency data via `useSyncExternalStore`, bypassing the main `VoiceContext`. Use them instead of the deprecated `useVoice()` properties for FFT and call duration data.
+
+#### `usePlayerFft()`: readonly number[]
+
+Returns live FFT values for the assistant audio output, updated at display refresh rate (~60Hz).
+
+```tsx
+import { usePlayerFft } from '@humeai/voice-react';
+
+function Waveform() {
+  const fft = usePlayerFft();
+  // render visualization using fft values
+}
+```
+
+#### `useMicFft()`: readonly number[]
+
+Returns live FFT values for microphone input, updated at display refresh rate (~60Hz).
+
+```tsx
+import { useMicFft } from '@humeai/voice-react';
+
+function MicWaveform() {
+  const micFft = useMicFft();
+  // render visualization using micFft values
+}
+```
+
+#### `useCallDurationTimestamp()`: string | null
+
+Returns the formatted call duration timestamp, updated ~1Hz during an active call.
+
+```tsx
+import { useCallDurationTimestamp } from '@humeai/voice-react';
+
+function CallTimer() {
+  const timestamp = useCallDurationTimestamp();
+  return <span>{timestamp ?? '0:00'}</span>;
+}
+```
 
 ## Types
 

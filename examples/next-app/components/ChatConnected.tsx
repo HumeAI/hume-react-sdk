@@ -1,6 +1,11 @@
 'use client';
 
-import { useVoice } from '@humeai/voice-react';
+import {
+  useCallDurationTimestamp,
+  useMicFft,
+  usePlayerFft,
+  useVoice,
+} from '@humeai/voice-react';
 import { SelectItem } from '@radix-ui/react-select';
 import { MicIcon, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -17,7 +22,6 @@ import { Waveform } from '@/components/Waveform';
 export const ChatConnected = () => {
   const {
     disconnect,
-    fft: audioFft,
     isMuted,
     isAudioMuted,
     isPlaying,
@@ -27,8 +31,6 @@ export const ChatConnected = () => {
     unmute,
     unmuteAudio,
     messages,
-    micFft,
-    callDurationTimestamp,
     sendUserInput,
     sendAssistantInput,
     pauseAssistant,
@@ -42,6 +44,10 @@ export const ChatConnected = () => {
     setVolume,
     playerQueueLength,
   } = useVoice();
+
+  const audioFft = usePlayerFft();
+  const micFft = useMicFft();
+  const callDurationTimestamp = useCallDurationTimestamp();
 
   const [textValue, setTextValue] = useState('');
   const [textInputType, setTextInputType] = useState<'user' | 'assistant'>(

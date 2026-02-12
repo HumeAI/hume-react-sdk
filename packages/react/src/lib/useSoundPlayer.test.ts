@@ -11,6 +11,16 @@ vi.mock('./generateEmptyFft', () => ({
 
 vi.mock('./convertFrequencyScale', () => ({
   convertLinearFrequenciesToBark: (data: Uint8Array) => Array.from(data),
+  convertLinearFrequenciesToBarkInto: (
+    data: Uint8Array,
+    _sampleRate: number,
+    out: number[],
+  ) => {
+    for (let i = 0; i < out.length; i++) {
+      out[i] = data[i] ?? 0;
+    }
+    return out;
+  },
 }));
 
 vi.mock('hume', () => ({
