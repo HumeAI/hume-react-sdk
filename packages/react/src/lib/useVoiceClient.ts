@@ -1,8 +1,9 @@
 import { Hume, HumeClient } from 'hume';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Simplify } from 'type-fest';
 
 import { type AuthStrategy } from './auth';
+import { useLatestRef } from './useLatestRef';
 import type {
   AudioOutputMessage,
   JSONMessage,
@@ -30,8 +31,9 @@ type SessionSettingsOnConnect = Omit<
 >;
 /**
  * Extracts session settings that can be sent as query params when the websocket connects.
+ * Matches ConnectSessionSettings in the TypeScript SDK (systemPrompt, voiceId, context, etc. are supported).
  *
- * `tools`, `builtinTools`, `systemPrompt`, and `metadata` are not yet supported in the query string.
+ * `tools`, `builtinTools`, and `metadata` are not yet supported in the connect query string.
  */
 const getSessionSettingsOnConnect = (
   sessionSettings?: Hume.empathicVoice.SessionSettings,
@@ -40,8 +42,7 @@ const getSessionSettingsOnConnect = (
     return undefined;
   }
 
-  const { builtinTools, tools, metadata, type, systemPrompt, ...onConnect } =
-    sessionSettings;
+  const { builtinTools, tools, metadata, type, ...onConnect } = sessionSettings;
   return onConnect;
 };
 
@@ -88,37 +89,14 @@ export const useVoiceClient = (props: {
     VoiceReadyState.IDLE,
   );
 
-  // this pattern might look hacky but it allows us to use the latest props
-  // in callbacks set up inside useEffect without re-rendering the useEffect
-  const onAudioMessage = useRef<typeof props.onAudioMessage>(
-    props.onAudioMessage,
-  );
-  onAudioMessage.current = props.onAudioMessage;
-
-  const onMessage = useRef<typeof props.onMessage>(props.onMessage);
-  onMessage.current = props.onMessage;
-
-  const onSessionSettings = useRef<typeof props.onSessionSettings>(
-    props.onSessionSettings,
-  );
-  onSessionSettings.current = props.onSessionSettings;
-
-  const onToolCall = useRef<typeof props.onToolCall>(props.onToolCall);
-  onToolCall.current = props.onToolCall;
-
-  const onClientError = useRef<typeof props.onClientError>(props.onClientError);
-  onClientError.current = props.onClientError;
-
-  const onToolCallError = useRef<typeof props.onToolCallError>(
-    props.onToolCallError,
-  );
-  onToolCallError.current = props.onToolCallError;
-
-  const onOpen = useRef<typeof props.onOpen>(props.onOpen);
-  onOpen.current = props.onOpen;
-
-  const onClose = useRef<typeof props.onClose>(props.onClose);
-  onClose.current = props.onClose;
+  const onAudioMessage = useLatestRef(props.onAudioMessage);
+  const onMessage = useLatestRef(props.onMessage);
+  const onSessionSettings = useLatestRef(props.onSessionSettings);
+  const onToolCall = useLatestRef(props.onToolCall);
+  const onClientError = useLatestRef(props.onClientError);
+  const onToolCallError = useLatestRef(props.onToolCallError);
+  const onOpen = useLatestRef(props.onOpen);
+  const onClose = useLatestRef(props.onClose);
 
   const connect = useCallback(
     (
@@ -381,16 +359,30 @@ export const useVoiceClient = (props: {
     client.current?.resumeAssistant({});
   }, [readyState]);
 
-  return {
-    readyState,
-    sendSessionSettings,
-    sendAudio,
-    connect,
-    disconnect,
-    sendUserInput,
-    sendAssistantInput,
-    sendToolMessage,
-    sendPauseAssistantMessage,
-    sendResumeAssistantMessage,
-  };
+  return useMemo(
+    () => ({
+      readyState,
+      sendSessionSettings,
+      sendAudio,
+      connect,
+      disconnect,
+      sendUserInput,
+      sendAssistantInput,
+      sendToolMessage,
+      sendPauseAssistantMessage,
+      sendResumeAssistantMessage,
+    }),
+    [
+      readyState,
+      sendSessionSettings,
+      sendAudio,
+      connect,
+      disconnect,
+      sendUserInput,
+      sendAssistantInput,
+      sendToolMessage,
+      sendPauseAssistantMessage,
+      sendResumeAssistantMessage,
+    ],
+  );
 };

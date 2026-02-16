@@ -9,9 +9,14 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 
 import { ConnectionMessage } from './connection-message';
+import type { FftSnapshot } from './fftStore';
+import { FftStore, useFftSubscription } from './fftStore';
+import type { CallDurationStore } from './useCallDuration';
+import { useLatestRef } from './useLatestRef';
 import { noop } from './noop';
 import { useCallDuration } from './useCallDuration';
 import { useMessages } from './useMessages';
@@ -341,6 +346,40 @@ export const useVoice = () => {
   return ctx;
 };
 
+const StoresContext = createContext<{
+  playerFftStore: FftStore;
+  micFftStore: FftStore;
+  callDurationStore: CallDurationStore;
+} | null>(null);
+
+export const usePlayerFft = (): FftSnapshot => {
+  const ctx = useContext(StoresContext);
+  if (!ctx) {
+    throw new Error('usePlayerFft must be used within a VoiceProvider');
+  }
+  return useFftSubscription(ctx.playerFftStore);
+};
+
+export const useMicFft = (): FftSnapshot => {
+  const ctx = useContext(StoresContext);
+  if (!ctx) {
+    throw new Error('useMicFft must be used within a VoiceProvider');
+  }
+  return useFftSubscription(ctx.micFftStore);
+};
+
+export const useCallDurationTimestamp = (): string | null => {
+  const ctx = useContext(StoresContext);
+  if (!ctx) {
+    throw new Error('useCallDurationTimestamp must be used within a VoiceProvider');
+  }
+  return useSyncExternalStore(
+    ctx.callDurationStore.subscribe,
+    ctx.callDurationStore.getSnapshot,
+    ctx.callDurationStore.getServerSnapshot,
+  );
+};
+
 export const VoiceProvider: FC<VoiceProviderProps> = ({
   children,
   clearMessagesOnDisconnect = true,
@@ -349,7 +388,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
   ...props
 }) => {
   const {
-    timestamp: callDurationTimestamp,
+    store: callDurationStore,
     start: startTimer,
     stop: stopTimer,
   } = useCallDuration();
@@ -358,6 +397,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     value: 'disconnected',
   });
   const isConnectingRef = useRef(false);
+  const sharedAudioContextRef = useRef<AudioContext | null>(null);
 
   // stores information about whether certain resources are being disconnected
   const resourceStatusRef = useRef<{
@@ -379,26 +419,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
   const isSocketError = error?.type === 'socket_error';
   const isAudioError = error?.type === 'audio_error';
 
-  const onError = useRef(props.onError ?? noop);
-  onError.current = props.onError ?? noop;
-
-  const onClose = useRef(props.onClose ?? noop);
-  onClose.current = props.onClose ?? noop;
-
-  const onMessage = useRef(props.onMessage ?? noop);
-  onMessage.current = props.onMessage ?? noop;
-
-  const onAudioReceived = useRef(props.onAudioReceived ?? noop);
-  onAudioReceived.current = props.onAudioReceived ?? noop;
-
-  const onAudioStart = useRef(props.onAudioStart ?? noop);
-  onAudioStart.current = props.onAudioStart ?? noop;
-
-  const onAudioEnd = useRef(props.onAudioEnd ?? noop);
-  onAudioEnd.current = props.onAudioEnd ?? noop;
-
-  const onInterruption = useRef(props.onInterruption ?? noop);
-  onInterruption.current = props.onInterruption ?? noop;
+  const onError = useLatestRef(props.onError ?? noop);
+  const onOpen = useLatestRef(props.onOpen ?? noop);
+  const onClose = useLatestRef(props.onClose ?? noop);
+  const onMessage = useLatestRef(props.onMessage ?? noop);
+  const onAudioReceived = useLatestRef(props.onAudioReceived ?? noop);
+  const onAudioStart = useLatestRef(props.onAudioStart ?? noop);
+  const onAudioEnd = useLatestRef(props.onAudioEnd ?? noop);
+  const onInterruption = useLatestRef(props.onInterruption ?? noop);
 
   const toolStatus = useToolStatus();
 
@@ -467,37 +495,46 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     },
   });
 
+  const {
+    onMessage: messageStoreOnMessage,
+    createConnectMessage,
+    createDisconnectMessage,
+    createSessionSettingsMessage,
+    clearMessages: clearMessageStore,
+  } = messageStore;
+  const { addToQueue: playerAddToQueue, clearQueue: playerClearQueue, stopAll: playerStopAll } = player;
+  const { addToStore: toolStatusAddToStore, clearStore: toolStatusClearStore } = toolStatus;
+  const playerIsPlayingRef = useLatestRef(player.isPlaying);
+
   const { getStream, stopStream } = useMicrophoneStream();
 
   const client = useVoiceClient({
-    onAudioMessage: (message: AudioOutputMessage) => {
-      if (checkIsDisconnecting() || checkIsDisconnected()) {
-        // disconnection in progress, and resources are being cleaned up.
-        // ignore the message
-        return;
-      }
-      void player.addToQueue(message);
-      onAudioReceived.current(message);
-    },
+    onAudioMessage: useCallback(
+      (message: AudioOutputMessage) => {
+        if (checkIsDisconnecting() || checkIsDisconnected()) {
+          return;
+        }
+        void playerAddToQueue(message);
+        onAudioReceived.current(message);
+      },
+      [checkIsDisconnected, checkIsDisconnecting, playerAddToQueue],
+    ),
     onMessage: useCallback(
       (message: JSONMessage) => {
         if (checkIsDisconnecting() || checkIsDisconnected()) {
-          // disconnection in progress, and resources are being cleaned up.
-          // ignore the message
           return;
         }
 
-        // store message
-        messageStore.onMessage(message);
+        messageStoreOnMessage(message);
 
         if (
           message.type === 'user_interruption' ||
           message.type === 'user_message'
         ) {
-          if (player.isPlaying) {
+          if (playerIsPlayingRef.current) {
             onInterruption.current(message);
           }
-          player.clearQueue();
+          playerClearQueue();
         }
 
         if (
@@ -505,7 +542,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
           message.type === 'tool_response' ||
           message.type === 'tool_error'
         ) {
-          toolStatus.addToStore(message);
+          toolStatusAddToStore(message);
         }
 
         if (message.type === 'error') {
@@ -520,21 +557,19 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       [
         checkIsDisconnected,
         checkIsDisconnecting,
-        messageStore,
-        player,
-        toolStatus,
+        messageStoreOnMessage,
+        playerClearQueue,
+        toolStatusAddToStore,
       ],
     ),
     onSessionSettings: useCallback(
       (sessionSettings: Hume.empathicVoice.SessionSettings) => {
         if (checkIsDisconnecting() || checkIsDisconnected()) {
-          // disconnection in progress, and resources are being cleaned up.
-          // ignore the message
           return;
         }
-        messageStore.createSessionSettingsMessage(sessionSettings);
+        createSessionSettingsMessage(sessionSettings);
       },
-      [checkIsDisconnected, checkIsDisconnecting, messageStore],
+      [checkIsDisconnected, checkIsDisconnecting, createSessionSettingsMessage],
     ),
     onClientError,
     onToolCallError: useCallback(
@@ -551,9 +586,9 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     ),
     onOpen: useCallback(() => {
       startTimer();
-      messageStore.createConnectMessage();
-      props.onOpen?.();
-    }, [messageStore, props, startTimer]),
+      createConnectMessage();
+      onOpen.current?.();
+    }, [startTimer, createConnectMessage]),
     onClose: useCallback<
       NonNullable<Hume.empathicVoice.chat.ChatSocket.EventHandlers['close']>
     >(
@@ -564,16 +599,16 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         isConnectingRef.current = false;
         resourceStatusRef.current.socket = 'disconnected';
 
-        messageStore.createDisconnectMessage(event);
+        createDisconnectMessage(event);
         if (clearMessagesOnDisconnect) {
-          messageStore.clearMessages();
+          clearMessageStore();
         }
-        toolStatus.clearStore();
+        toolStatusClearStore();
         setIsPaused(false);
 
         const resourceShutdownFns = [];
         if (resourceStatusRef.current.audioPlayer === 'connected') {
-          resourceShutdownFns.push(player.stopAll());
+          resourceShutdownFns.push(playerStopAll());
         }
         if (resourceStatusRef.current.mic === 'connected') {
           resourceShutdownFns.push(micStopFnRef.current?.());
@@ -583,20 +618,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
           void Promise.all(resourceShutdownFns).then(() => {
             resourceStatusRef.current.audioPlayer = 'disconnected';
             resourceStatusRef.current.mic = 'disconnected';
-            // if audio player and mic were connected at the time the socket
-            // shut down, we can assume that the connection was closed by
-            // the server, and not the user. Therefore, set the status
-            // to 'disconnected'
             setStatus({ value: 'disconnected' });
             onClose.current?.(event);
           });
         } else {
-          // if audio player and mic were not connected at the time the socket,
-          // no need to setStatus because the user initiated the disconnect.
           onClose.current?.(event);
         }
       },
-      [clearMessagesOnDisconnect, messageStore, player, stopTimer, toolStatus],
+      [clearMessagesOnDisconnect, createDisconnectMessage, clearMessageStore, playerStopAll, stopTimer, toolStatusClearStore],
     ),
     onToolCall: props.onToolCall,
   });
@@ -609,7 +638,10 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     sendToolMessage: clientSendToolMessage,
     sendPauseAssistantMessage,
     sendResumeAssistantMessage,
+    connect: clientConnect,
+    disconnect: clientDisconnect,
   } = client;
+  const clientReadyStateRef = useLatestRef(client.readyState);
 
   const mic = useMicrophone({
     onAudioCaptured: useCallback(
@@ -642,11 +674,11 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     ),
   });
 
-  useEffect(() => {
-    micStopFnRef.current = mic.stop;
-  }, [mic]);
+  const { start: micStart, stop: micStop } = mic;
 
-  const { clearQueue } = player;
+  useEffect(() => {
+    micStopFnRef.current = micStop;
+  }, [micStop]);
 
   const pauseAssistant = useCallback(() => {
     try {
@@ -660,8 +692,8 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         message,
       });
     }
-    clearQueue();
-  }, [sendPauseAssistantMessage, clearQueue, updateError]);
+    playerClearQueue();
+  }, [sendPauseAssistantMessage, playerClearQueue, updateError]);
 
   const resumeAssistant = useCallback(() => {
     try {
@@ -733,6 +765,9 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
 
+      const sharedCtx = new AudioContext();
+      sharedAudioContextRef.current = sharedCtx;
+
       // Audio Player - must initialize before connecting to the socket
       // because it needs to exist by the time the socket is ready to send audio data
       if (!checkShouldContinueConnecting()) {
@@ -740,7 +775,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
       try {
-        await player.initPlayer(devices?.speakerDeviceId);
+        await player.initPlayer(devices?.speakerDeviceId, sharedCtx);
       } catch (e) {
         resourceStatusRef.current.audioPlayer = 'disconnected';
         updateError({
@@ -763,7 +798,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
       try {
-        await client.connect(
+        await clientConnect(
           {
             ...socketConfig,
             verboseTranscription: socketConfig.verboseTranscription ?? true,
@@ -787,7 +822,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
       try {
-        mic.start(stream);
+        micStart(stream, sharedCtx);
       } catch (e) {
         resourceStatusRef.current.mic = 'disconnected';
         updateError({
@@ -802,17 +837,15 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       }
       resourceStatusRef.current.mic = 'connected';
 
-      // Everything is now initialized (socket, audio player, microphone),
-      // so set the global connected status
       setStatus({ value: 'connected' });
       isConnectingRef.current = false;
     },
     [
       checkShouldContinueConnecting,
-      client,
+      clientConnect,
       getStream,
-      mic,
-      player,
+      micStart,
+      player.initPlayer,
       status.value,
       updateError,
     ],
@@ -835,14 +868,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     // Call stopStream separately because the user could stop the
     // the connection before the microphone is initialized
     stopStream();
-    await mic.stop();
+    await micStop();
     resourceStatusRef.current.mic = 'disconnected';
 
     // WEBSOCKET - shut this down before shutting down the audio player
-    if (client.readyState !== VoiceReadyState.CLOSED) {
+    if (clientReadyStateRef.current !== VoiceReadyState.CLOSED) {
       // socket is open, so close it. resourceStatusRef will be set to 'disconnected'
       // in the onClose callback of the websocket client.
-      client.disconnect();
+      clientDisconnect();
     } else {
       // socket is already closed, so ensure that the socket status is appropriately set
       resourceStatusRef.current.socket = 'disconnected';
@@ -852,24 +885,31 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     // onClose signals that the socket is actually disconnected.
 
     // AUDIO PLAYER
-    await player.stopAll();
+    await playerStopAll();
     resourceStatusRef.current.audioPlayer = 'disconnected';
+
+    if (sharedAudioContextRef.current) {
+      await sharedAudioContextRef.current.close().catch(() => {
+        // .close() rejects if already closed; safe to ignore.
+      });
+      sharedAudioContextRef.current = null;
+    }
 
     // Clean up other state variables that are synchronous
     if (clearMessagesOnDisconnect) {
-      messageStore.clearMessages();
+      clearMessageStore();
     }
-    toolStatus.clearStore();
+    toolStatusClearStore();
     setIsPaused(false);
   }, [
     stopTimer,
     stopStream,
-    mic,
-    client,
-    player,
+    micStop,
+    clientDisconnect,
+    playerStopAll,
     clearMessagesOnDisconnect,
-    toolStatus,
-    messageStore,
+    clearMessageStore,
+    toolStatusClearStore,
   ]);
 
   // `disconnect` is the function that the end user calls to disconnect a call
@@ -995,13 +1035,20 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     [clientSendToolMessage, updateError],
   );
 
+  const storesCtx = useMemo(
+    () => ({
+      playerFftStore: player.fftStore,
+      micFftStore: mic.fftStore,
+      callDurationStore,
+    }),
+    [player.fftStore, mic.fftStore, callDurationStore],
+  );
+
   const ctx = useMemo(
     () =>
       ({
         connect,
         disconnect,
-        fft: player.fft,
-        micFft: mic.fft,
         isMuted: mic.isMuted,
         isAudioMuted: player.isAudioMuted,
         isPlaying: player.isPlaying,
@@ -1027,7 +1074,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         isError,
         isMicrophoneError,
         isSocketError,
-        callDurationTimestamp,
         toolStatusStore: toolStatus.store,
         chatMetadata: messageStore.chatMetadata,
         playerQueueLength: player.queueLength,
@@ -1038,7 +1084,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     [
       connect,
       disconnect,
-      player.fft,
       player.isAudioMuted,
       player.isPlaying,
       player.muteAudio,
@@ -1046,7 +1091,6 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       player.queueLength,
       player.volume,
       player.setVolume,
-      mic.fft,
       mic.isMuted,
       mic.mute,
       mic.unmute,
@@ -1069,11 +1113,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       isError,
       isMicrophoneError,
       isSocketError,
-      callDurationTimestamp,
       toolStatus.store,
       isPaused,
     ],
   );
 
-  return <VoiceContext.Provider value={ctx}>{children}</VoiceContext.Provider>;
+  return (
+    <StoresContext.Provider value={storesCtx}>
+      <VoiceContext.Provider value={ctx}>{children}</VoiceContext.Provider>
+    </StoresContext.Provider>
+  );
 };
