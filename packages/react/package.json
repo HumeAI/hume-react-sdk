@@ -1,6 +1,6 @@
 {
   "name": "@humeai/voice-react",
-  "version": "0.3.0-beta.1",
+  "version": "0.3.0-beta.2",
   "description": "",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
