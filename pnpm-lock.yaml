@@ -41,8 +41,8 @@ importers:
         specifier: ^11.0.28
         version: 11.2.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       hume:
-        specifier: 0.15.14
-        version: 0.15.14
+        specifier: 0.15.15
+        version: 0.15.15
       lucide-react:
         specifier: ^0.372.0
         version: 0.372.0(react@19.2.4)
@@ -138,15 +138,15 @@ importers:
   examples/vite-app:
     dependencies:
       hume:
-        specifier: 0.15.14
-        version: 0.15.14
+        specifier: 0.15.15
+        version: 0.15.15
     devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^5.4.21
-        version: 5.4.21(@types/node@20.19.33)(terser@5.43.1)
+        version: 5.4.21(@types/node@20.19.35)(terser@5.43.1)
 
   examples/vite-app-embed:
     dependencies:
@@ -174,7 +174,7 @@ importers:
         version: 6.21.0(eslint@8.57.0)(typescript@5.4.5)
       '@vitejs/plugin-react':
         specifier: ^4.2.1
-        version: 4.3.1(vite@5.4.21(@types/node@20.19.33)(terser@5.43.1))
+        version: 4.3.1(vite@5.4.21(@types/node@20.19.35)(terser@5.43.1))
       eslint:
         specifier: ^8.55.0
         version: 8.57.0
@@ -189,13 +189,13 @@ importers:
         version: 5.4.5
       vite:
         specifier: ^5.4.21
-        version: 5.4.21(@types/node@20.19.33)(terser@5.43.1)
+        version: 5.4.21(@types/node@20.19.35)(terser@5.43.1)
 
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.15.14
-        version: 0.15.14
+        specifier: 0.15.15
+        version: 0.15.15
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.15.14
-        version: 0.15.14
+        specifier: ^0.15.15
+        version: 0.15.15
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.15.14
-        version: 0.15.14
+        specifier: 0.15.15
+        version: 0.15.15
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -1971,9 +1971,6 @@ packages:
   '@types/node@20.14.2':
     resolution: {integrity: sha512-xyu6WAMVwv6AKFLB+e/7ySZVr/0zLCzOa7rSpq6jNwpqOrUbcACDWC+53d4n2QHOnDou0fbIsg8wZu/sxrnI4Q==}
 
-  '@types/node@20.19.33':
-    resolution: {integrity: sha512-Rs1bVAIdBs5gbTIKza/tgpMuG1k3U/UMJLWecIMxNdJFDMzcM5LOiLVRYh3PilWEYDIeUDv7bpiHPLPsbydGcw==}
-
   '@types/node@20.19.35':
     resolution: {integrity: sha512-Uarfe6J91b9HAUXxjvSOdiO2UPOKLm07Q1oh0JHxoZ1y8HoqxDAu3gVrsrOHeiio0kSsoVBt4wFrKOm0dKxVPQ==}
 
@@ -3220,8 +3217,8 @@ packages:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
 
-  hume@0.15.14:
-    resolution: {integrity: sha512-ewb0Xizm+ktJvMfQBJx7R8hjXiam95xBTBIJCWrN8jbuSW+TzhUNR61RJNb4FWiuVY2hzQRo1OinccbKZ4GPkA==}
+  hume@0.15.15:
+    resolution: {integrity: sha512-p0eQ70EZWiseg/XzQFe4gPxPQgYmmWso/5ar1QyPWm2E5dAy6gx5oC24lxZjhEtMnwiOB+9ctU6OQJpHg1qKBQ==}
     engines: {node: '>=18.0.0'}
 
   iconv-lite@0.6.3:
@@ -6446,11 +6443,6 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@20.19.33':
-    dependencies:
-      undici-types: 6.21.0
-    optional: true
-
   '@types/node@20.19.35':
     dependencies:
       undici-types: 6.21.0
@@ -6617,14 +6609,14 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitejs/plugin-react@4.3.1(vite@5.4.21(@types/node@20.19.33)(terser@5.43.1))':
+  '@vitejs/plugin-react@4.3.1(vite@5.4.21(@types/node@20.19.35)(terser@5.43.1))':
     dependencies:
       '@babel/core': 7.24.7
       '@babel/plugin-transform-react-jsx-self': 7.24.7(@babel/core@7.24.7)
       '@babel/plugin-transform-react-jsx-source': 7.24.7(@babel/core@7.24.7)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.2
-      vite: 5.4.21(@types/node@20.19.33)(terser@5.43.1)
+      vite: 5.4.21(@types/node@20.19.35)(terser@5.43.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -8054,7 +8046,7 @@ snapshots:
   human-signals@2.1.0:
     optional: true
 
-  hume@0.15.14:
+  hume@0.15.15:
     dependencies:
       uuid: 9.0.1
       ws: 8.19.0
@@ -9980,13 +9972,13 @@ snapshots:
       fsevents: 2.3.3
       terser: 5.43.1
 
-  vite@5.4.21(@types/node@20.19.33)(terser@5.43.1):
+  vite@5.4.21(@types/node@20.19.35)(terser@5.43.1):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.6
       rollup: 4.57.1
     optionalDependencies:
-      '@types/node': 20.19.33
+      '@types/node': 20.19.35
       fsevents: 2.3.3
       terser: 5.43.1
 
