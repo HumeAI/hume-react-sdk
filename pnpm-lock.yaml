@@ -194,8 +194,8 @@ importers:
   packages/embed:
     dependencies:
       hume:
-        specifier: 0.15.16
-        version: 0.15.16
+        specifier: 0.15.15
+        version: 0.15.15
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -228,8 +228,8 @@ importers:
         specifier: workspace:*
         version: link:../embed
       hume:
-        specifier: ^0.15.16
-        version: 0.15.16
+        specifier: ^0.15.15
+        version: 0.15.15
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -295,8 +295,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       hume:
-        specifier: 0.15.16
-        version: 0.15.16
+        specifier: 0.15.15
+        version: 0.15.15
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3219,10 +3219,6 @@ packages:
 
   hume@0.15.15:
     resolution: {integrity: sha512-p0eQ70EZWiseg/XzQFe4gPxPQgYmmWso/5ar1QyPWm2E5dAy6gx5oC24lxZjhEtMnwiOB+9ctU6OQJpHg1qKBQ==}
-    engines: {node: '>=18.0.0'}
-
-  hume@0.15.16:
-    resolution: {integrity: sha512-0LXz09ElrNwdA71GLT6R5RTTN1QRbxJp6PwuHfuQ1sP1kDmbC8GSTv/N/FFEoI/6QhxaP3xv9DDH+Ro+kxENiQ==}
     engines: {node: '>=18.0.0'}
 
   iconv-lite@0.6.3:
@@ -8051,15 +8047,6 @@ snapshots:
     optional: true
 
   hume@0.15.15:
-    dependencies:
-      uuid: 9.0.1
-      ws: 8.19.0
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  hume@0.15.16:
     dependencies:
       uuid: 9.0.1
       ws: 8.19.0
