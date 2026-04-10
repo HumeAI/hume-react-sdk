@@ -41,8 +41,8 @@ importers:
         specifier: ^11.0.28
         version: 11.2.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       hume:
-        specifier: 0.15.15
-        version: 0.15.15
+        specifier: 0.15.16
+        version: 0.15.16
       lucide-react:
         specifier: ^0.372.0
         version: 0.372.0(react@19.2.4)
@@ -138,8 +138,8 @@ importers:
   examples/vite-app:
     dependencies:
       hume:
-        specifier: 0.15.15
-        version: 0.15.15
+        specifier: 0.15.16
+        version: 0.15.16
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -3216,10 +3216,6 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
-
-  hume@0.15.15:
-    resolution: {integrity: sha512-p0eQ70EZWiseg/XzQFe4gPxPQgYmmWso/5ar1QyPWm2E5dAy6gx5oC24lxZjhEtMnwiOB+9ctU6OQJpHg1qKBQ==}
-    engines: {node: '>=18.0.0'}
 
   hume@0.15.16:
     resolution: {integrity: sha512-0LXz09ElrNwdA71GLT6R5RTTN1QRbxJp6PwuHfuQ1sP1kDmbC8GSTv/N/FFEoI/6QhxaP3xv9DDH+Ro+kxENiQ==}
@@ -8049,15 +8045,6 @@ snapshots:
 
   human-signals@2.1.0:
     optional: true
-
-  hume@0.15.15:
-    dependencies:
-      uuid: 9.0.1
-      ws: 8.19.0
-      zod: 3.23.8
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   hume@0.15.16:
     dependencies:

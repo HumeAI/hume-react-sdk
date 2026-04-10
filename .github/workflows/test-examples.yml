@@ -58,8 +58,8 @@ jobs:
       - name: Install example deps and use packed SDK
         working-directory: ./examples/evi/evi-next-js-app-router-quickstart
         run: |
-          npm ci
-          npm install "../../../sdk/${{ env.TARBALL }}"
+          pnpm install --frozen-lockfile
+          pnpm add "../../../sdk/${{ env.TARBALL }}"
           echo "=== Verifying @humeai/voice-react ==="
           INSTALLED=$(node -p "require('@humeai/voice-react/package.json').version")
           echo "Installed version: $INSTALLED"
@@ -67,15 +67,15 @@ jobs:
 
       - name: Build example
         working-directory: ./examples/evi/evi-next-js-app-router-quickstart
-        run: npm run build
+        run: pnpm run build
 
       - name: Install Playwright browsers
         working-directory: ./examples/evi/evi-next-js-app-router-quickstart
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run evi-next-js-app-router-quickstart tests
         working-directory: ./examples/evi/evi-next-js-app-router-quickstart
         env:
           TEST_HUME_API_KEY: ${{ secrets.TEST_HUME_API_KEY }}
           TEST_HUME_SECRET_KEY: ${{ secrets.TEST_HUME_SECRET_KEY }}
-        run: npm run test
+        run: pnpm run test

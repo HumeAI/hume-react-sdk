@@ -299,7 +299,7 @@ export const useVoiceClient = (props: {
       if (readyState !== VoiceReadyState.OPEN) {
         return;
       }
-      client.current?.socket?.send(arrayBuffer);
+      client.current?.socket?.send(arrayBuffer as ArrayBuffer);
     },
     [readyState],
   );
