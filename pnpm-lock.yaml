@@ -3224,6 +3224,10 @@ packages:
     resolution: {integrity: sha512-0LXz09ElrNwdA71GLT6R5RTTN1QRbxJp6PwuHfuQ1sP1kDmbC8GSTv/N/FFEoI/6QhxaP3xv9DDH+Ro+kxENiQ==}
     engines: {node: '>=18.0.0'}
 
+  hume@0.15.16:
+    resolution: {integrity: sha512-0LXz09ElrNwdA71GLT6R5RTTN1QRbxJp6PwuHfuQ1sP1kDmbC8GSTv/N/FFEoI/6QhxaP3xv9DDH+Ro+kxENiQ==}
+    engines: {node: '>=18.0.0'}
+
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -8062,6 +8066,15 @@ snapshots:
     dependencies:
       uuid: 9.0.1
       ws: 8.20.0
+      zod: 3.23.8
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
+  hume@0.15.16:
+    dependencies:
+      uuid: 9.0.1
+      ws: 8.19.0
       zod: 3.23.8
     transitivePeerDependencies:
       - bufferutil
