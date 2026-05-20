@@ -65,6 +65,9 @@ jobs:
     needs: pr-check
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
         - name: Checkout repo
           uses: actions/checkout@v4
@@ -74,11 +77,9 @@ jobs:
         - name: Set up node
           uses: actions/setup-node@v4
           with:
-              node-version: "18.18.0"
+              node-version: "22"
               registry-url: 'https://registry.npmjs.org'
               cache: 'pnpm'
 
         - name: Release
           run: pnpm run release
-          env:
-              NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
