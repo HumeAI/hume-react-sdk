@@ -81,5 +81,17 @@ jobs:
               registry-url: 'https://registry.npmjs.org'
               cache: 'pnpm'
 
+        - name: Determine npm tag
+          id: npm-tag
+          run: |
+            VERSION=$(jq -r .version packages/react/package.json)
+            if [[ "$VERSION" == *-* ]]; then
+              echo "tag=beta" >> "$GITHUB_OUTPUT"
+            else
+              echo "tag=latest" >> "$GITHUB_OUTPUT"
+            fi
+
         - name: Release
           run: pnpm run release
+          env:
+            NPM_TAG: ${{ steps.npm-tag.outputs.tag }}
