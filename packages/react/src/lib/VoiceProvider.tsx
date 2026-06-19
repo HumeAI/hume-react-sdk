@@ -147,9 +147,7 @@ export type VoiceProviderProps = PropsWithChildren<{
   onAudioReceived?: (audioOutputMessage: AudioOutputMessage) => void;
   onAudioStart?: (clipId: string) => void;
   onAudioEnd?: (clipId: string) => void;
-  onInterruption?: (
-    message: UserTranscriptMessage | UserInterruptionMessage,
-  ) => void;
+  onInterruption?: (message: UserInterruptionMessage) => void;
   /**
    * @default true
    * @description Clear messages when the voice is disconnected.
@@ -196,7 +194,9 @@ export const useMicFft = (): FftSnapshot => {
 export const useCallDurationTimestamp = (): string | null => {
   const ctx = useContext(StoresContext);
   if (!ctx) {
-    throw new Error('useCallDurationTimestamp must be used within a VoiceProvider');
+    throw new Error(
+      'useCallDurationTimestamp must be used within a VoiceProvider',
+    );
   }
   return useSyncExternalStore(
     ctx.callDurationStore.subscribe,
@@ -327,8 +327,13 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
     createSessionSettingsMessage,
     clearMessages: clearMessageStore,
   } = messageStore;
-  const { addToQueue: playerAddToQueue, clearQueue: playerClearQueue, stopAll: playerStopAll } = player;
-  const { addToStore: toolStatusAddToStore, clearStore: toolStatusClearStore } = toolStatus;
+  const {
+    addToQueue: playerAddToQueue,
+    clearQueue: playerClearQueue,
+    stopAll: playerStopAll,
+  } = player;
+  const { addToStore: toolStatusAddToStore, clearStore: toolStatusClearStore } =
+    toolStatus;
   const playerIsPlayingRef = useLatestRef(player.isPlaying);
 
   const { getStream, stopStream } = useMicrophoneStream();
@@ -352,10 +357,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
 
         messageStoreOnMessage(message);
 
-        if (
-          message.type === 'user_interruption' ||
-          message.type === 'user_message'
-        ) {
+        if (message.type === 'user_interruption') {
           if (playerIsPlayingRef.current) {
             onInterruption.current(message);
           }
@@ -450,7 +452,14 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
           onClose.current?.(event);
         }
       },
-      [clearMessagesOnDisconnect, createDisconnectMessage, clearMessageStore, playerStopAll, stopTimer, toolStatusClearStore],
+      [
+        clearMessagesOnDisconnect,
+        createDisconnectMessage,
+        clearMessageStore,
+        playerStopAll,
+        stopTimer,
+        toolStatusClearStore,
+      ],
     ),
     onToolCall: props.onToolCall,
   });
