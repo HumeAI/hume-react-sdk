@@ -17,7 +17,7 @@
     "@humeai/eslint-config": "workspace:*",
     "@humeai/typescript-config": "workspace:*",
     "prettier": "^3.7.4",
-    "turbo": "^1.13.4"
+    "turbo": "^2.9.14"
   },
   "packageManager": "pnpm@9.1.4",
   "engines": {
