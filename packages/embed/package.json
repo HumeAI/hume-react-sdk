@@ -32,7 +32,7 @@
     "jsdom": "^24.0.0",
     "tsup": "^8.3.5",
     "typescript": "^5.4.3",
-    "vitest": "^3.1.2"
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "hume": "0.15.17",
