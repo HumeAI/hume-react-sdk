@@ -57,7 +57,7 @@ export const ExampleComponent = ({ apiKey }: { apiKey: string }) => {
               <button
                 className="rounded border border-neutral-500 p-2"
                 onClick={() => {
-                  connect();
+                  void connect();
                 }}
               >
                 Connect to assistant
@@ -76,7 +76,7 @@ export const ExampleComponent = ({ apiKey }: { apiKey: string }) => {
                 <button
                   className="rounded border border-neutral-500 p-2"
                   onClick={() => {
-                    connect();
+                    void connect();
                   }}
                 >
                   Connect to assistant

@@ -1,6 +1,6 @@
 import type { Config, Message } from '@humeai/assistant';
 import { AssistantClient } from '@humeai/assistant';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export enum ReadyState {
   IDLE = 'idle',
@@ -12,6 +12,7 @@ export enum ReadyState {
 export const useAssistantClient = (props: {
   config: Config;
   onAudioMessage?: (arrayBuffer: ArrayBufferLike) => void;
+  onError?: (error: Error) => void;
 }) => {
   const config = useRef<Config>(props.config);
   config.current = props.config;
@@ -25,15 +26,25 @@ export const useAssistantClient = (props: {
     ((arrayBuffer: ArrayBufferLike) => void) | undefined
   >(props.onAudioMessage);
   onAudioMessage.current = props.onAudioMessage;
+  const onError = useRef<((error: Error) => void) | undefined>(props.onError);
+  onError.current = props.onError;
 
-  const connect = () => {
-    client.current = AssistantClient.create(config.current);
+  const connect = useCallback((nextConfig?: Config) => {
+    const previousClient = client.current;
+    client.current = null;
+    previousClient?.disconnect();
 
-    client.current.on('open', () => {
+    const nextClient = AssistantClient.create(nextConfig ?? config.current);
+    client.current = nextClient;
+
+    nextClient.on('open', () => {
+      if (client.current !== nextClient) return;
       setReadyState(ReadyState.OPEN);
     });
 
-    client.current.on('message', (message) => {
+    nextClient.on('message', (message) => {
+      if (client.current !== nextClient) return;
+
       if (message.type === 'audio') {
         onAudioMessage.current?.(message.data);
       }
@@ -43,24 +54,38 @@ export const useAssistantClient = (props: {
       });
     });
 
-    client.current.on('close', () => {
+    nextClient.on('close', () => {
+      if (client.current !== nextClient) return;
       setReadyState(ReadyState.CLOSED);
     });
 
-    client.current.on('error', () => {});
+    nextClient.on('error', (error) => {
+      if (client.current !== nextClient) return;
+      onError.current?.(error);
+    });
 
     setReadyState(ReadyState.CONNECTING);
 
-    client.current.connect();
-  };
+    nextClient.connect();
+  }, []);
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
+    const currentClient = client.current;
+    client.current = null;
     setReadyState(ReadyState.IDLE);
-    client.current?.disconnect();
-  };
+    currentClient?.disconnect();
+  }, []);
 
   const sendAudio = useCallback((arrayBuffer: ArrayBufferLike) => {
     client.current?.sendAudio(arrayBuffer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const currentClient = client.current;
+      client.current = null;
+      currentClient?.disconnect();
+    };
   }, []);
 
   return {

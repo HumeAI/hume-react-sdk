@@ -1,8 +1,8 @@
-import { createConfig } from '@humeai/assistant';
-import { useCallback, useEffect, useState } from 'react';
+import { AudioEncoding, createConfig } from '@humeai/assistant';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useAssistantClient } from './useAssistantClient';
-import { useMicrophone } from './useMicrophone';
+import { ReadyState, useAssistantClient } from './useAssistantClient';
+import { type EncodingValues, useMicrophone } from './useMicrophone';
 import { useSoundPlayer } from './useSoundPlayer';
 
 type AssistantStatus =
@@ -15,85 +15,164 @@ type AssistantStatus =
       reason: string;
     };
 
+const toError = (error: unknown): Error => {
+  return error instanceof Error ? error : new Error(String(error));
+};
+
 export const useAssistant = (props: Parameters<typeof createConfig>[0]) => {
   const [status, setStatus] = useState<AssistantStatus>({
     value: 'disconnected',
   });
-  const [micPermission, setMicPermission] = useState<
-    'prompt' | 'granted' | 'denied'
-  >('prompt');
-
+  const connectionAttemptRef = useRef(0);
   const config = createConfig(props);
+  const configRef = useRef(config);
+  configRef.current = config;
 
-  const player = useSoundPlayer();
+  const {
+    addToQueue,
+    fft,
+    initPlayer,
+    isPlaying,
+    stopAll: stopAllAudio,
+  } = useSoundPlayer();
 
-  const mic = useMicrophone({
-    encodingConstraints: {
-      sampleRate: config.sampleRate,
-      channelCount: config.channels,
-    },
-    onAudioCaptured: (arrayBuffer) => {
-      client.sendAudio(arrayBuffer);
-    },
-    onMicPermissionChange: (permission: 'prompt' | 'granted' | 'denied') => {
-      setMicPermission(permission);
-    },
-  });
-  const client = useAssistantClient({
+  const handleError = useCallback((message: string, error: Error) => {
+    setStatus({ value: 'error', reason: `${message} ${error.message}` });
+  }, []);
+
+  const {
+    connect: connectClient,
+    disconnect: disconnectClient,
+    messages,
+    readyState,
+    sendAudio,
+  } = useAssistantClient({
     config: {
       ...config,
-      sampleRate: mic.realEncodingValues.sampleRate,
-      channels: mic.realEncodingValues.channelCount,
+      encoding: AudioEncoding.LINEAR16,
     },
-    onAudioMessage: (arrayBuffer) => {
-      player.addToQueue(arrayBuffer);
+    onAudioMessage: addToQueue,
+    onError: (error) => {
+      handleError('Assistant connection error.', error);
     },
   });
 
-  const connect = useCallback(() => {
-    if (micPermission === 'denied') {
-      setStatus({ value: 'error', reason: 'Microphone permission denied' });
-    } else {
-      setStatus({ value: 'connecting' });
-      void mic.start();
+  const encodingConstraints = useMemo(
+    () => ({
+      sampleRate: config.sampleRate,
+      channelCount: config.channels,
+    }),
+    [config.channels, config.sampleRate],
+  );
+
+  const {
+    isMuted,
+    mute,
+    prepare: prepareMicrophone,
+    startPreparedRecording,
+    stop: stopMicrophone,
+    unmute,
+  } = useMicrophone({
+    encodingConstraints,
+    onAudioCaptured: sendAudio,
+    onError: handleError,
+    onMicPermissionChange: (permission) => {
+      if (permission === 'denied') {
+        setStatus({
+          value: 'error',
+          reason: 'Microphone permission denied.',
+        });
+      }
+    },
+  });
+
+  const connect = useCallback(async () => {
+    const connectionAttempt = connectionAttemptRef.current + 1;
+    connectionAttemptRef.current = connectionAttempt;
+    disconnectClient();
+    stopAllAudio();
+    setStatus({ value: 'connecting' });
+
+    let encodingValues: EncodingValues;
+
+    try {
+      encodingValues = await prepareMicrophone();
+    } catch {
+      if (connectionAttempt === connectionAttemptRef.current) {
+        disconnectClient();
+        stopMicrophone();
+      }
+      return;
     }
-  }, [micPermission]);
+
+    if (connectionAttempt !== connectionAttemptRef.current) {
+      return;
+    }
+
+    try {
+      connectClient({
+        ...configRef.current,
+        channels: encodingValues.channelCount,
+        encoding: AudioEncoding.LINEAR16,
+        sampleRate: encodingValues.sampleRate,
+      });
+    } catch (error) {
+      const normalizedError = toError(error);
+      handleError('Error connecting assistant.', normalizedError);
+      stopMicrophone();
+    }
+  }, [
+    connectClient,
+    disconnectClient,
+    handleError,
+    prepareMicrophone,
+    stopAllAudio,
+    stopMicrophone,
+  ]);
 
   const disconnect = useCallback(() => {
-    if (micPermission === 'denied') {
-      setStatus({ value: 'error', reason: 'Microphone permission denied' });
-    } else {
-      setStatus({ value: 'disconnected' });
-    }
-    client.disconnect();
-    player.stopAll();
-    mic.stop();
-  }, [micPermission]);
+    connectionAttemptRef.current += 1;
+    disconnectClient();
+    stopAllAudio();
+    stopMicrophone();
+    setStatus({ value: 'disconnected' });
+  }, [disconnectClient, stopAllAudio, stopMicrophone]);
 
   useEffect(() => {
-    if (micPermission === 'granted' && status.value === 'connecting') {
+    if (readyState !== ReadyState.OPEN || status.value !== 'connecting') {
+      return;
+    }
+
+    try {
+      initPlayer();
+      startPreparedRecording();
       setStatus({ value: 'connected' });
-      client.connect();
-      player.initPlayer();
+    } catch (error) {
+      const normalizedError = toError(error);
+      handleError('Error starting assistant audio.', normalizedError);
+      disconnectClient();
+      stopMicrophone();
     }
-  }, [micPermission, status]);
-
-  useEffect(() => {
-    if (micPermission === 'denied') {
-      disconnect();
-    }
-  }, [micPermission]);
+  }, [
+    disconnectClient,
+    handleError,
+    initPlayer,
+    readyState,
+    startPreparedRecording,
+    status.value,
+    stopMicrophone,
+  ]);
 
   return {
     connect,
     disconnect,
-    fft: player.fft,
-    isMuted: mic.isMuted,
-    isPlaying: player.isPlaying,
-    messages: client.messages,
-    mute: mic.mute,
-    readyState: client.readyState,
+    fft,
+    isMuted,
+    isPlaying,
+    messages,
+    mute,
+    readyState,
     status,
-    unmute: mic.unmute,
+    unmute,
   };
 };

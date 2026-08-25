@@ -21,10 +21,16 @@ export const useSoundPlayer = () => {
   const audioContext = useRef<AudioContext | null>(null);
   const isInitialized = useRef(false);
 
-  const initPlayer = () => {
+  const initPlayer = useCallback(() => {
+    if (audioContext.current && audioContext.current.state !== 'closed') {
+      void audioContext.current.resume();
+      isInitialized.current = true;
+      return;
+    }
+
     audioContext.current = new AudioContext();
     isInitialized.current = true;
-  };
+  }, []);
 
   const addToQueue = useCallback((clip: ArrayBuffer) => {
     if (!isInitialized.current) {
@@ -123,6 +129,14 @@ export const useSoundPlayer = () => {
       isProcessing: false,
       clips: [],
     }));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      isInitialized.current = false;
+      void audioContext.current?.close();
+      audioContext.current = null;
+    };
   }, []);
 
   return {

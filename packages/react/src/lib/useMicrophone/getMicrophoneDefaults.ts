@@ -1,95 +1,42 @@
-import { detect } from 'detect-browser';
-import {
-  DEFAULT_ENCODING_VALUES,
-  EncodingValues,
-  getDefaultEncodingByBrowser,
-} from './constants';
+import { Channels } from '@humeai/assistant';
 
-const parseTrackEncodingConstraints = (
-  trackCapabilities: MediaTrackCapabilities,
-  idealTrackSettings: Partial<EncodingValues>,
-  browserName?: string,
-): EncodingValues => {
-  const supportedConstraints: Partial<EncodingValues> = {};
+import type { EncodingValues } from './constants';
+import { DEFAULT_ENCODING_VALUES } from './constants';
 
-  for (const key of Object.keys(idealTrackSettings)) {
-    if (key in trackCapabilities) {
-      const { min, max } = (trackCapabilities as any)[key];
-      const idealValue = (idealTrackSettings as any)[key];
-      if (idealValue) {
-        if (min && idealValue < min) {
-          console.warn(
-            `Ideal ${key} ${idealValue} is not supported by the ${
-              browserName ?? 'this browser'
-            } (minimum ${min}). Using ${min} instead.`,
-          );
-          supportedConstraints[key as keyof EncodingValues] = min;
-        } else if (max && idealValue > max) {
-          console.warn(
-            `Ideal ${key} ${idealValue} is not supported by the ${
-              browserName ?? 'this browser'
-            } (maximum ${max}). Using ${max} instead.`,
-          );
-          supportedConstraints[key as keyof EncodingValues] = max;
-        } else {
-          supportedConstraints[key as keyof EncodingValues] = idealValue;
-        }
-      }
-    }
+const getSupportedChannelCount = (channelCount: number): Channels => {
+  if (channelCount === 1) {
+    return Channels.MONO;
+  }
+  if (channelCount === 2) {
+    return Channels.STEREO;
   }
 
-  for (const key of Object.keys(DEFAULT_ENCODING_VALUES)) {
-    if (!(key in trackCapabilities)) {
-      console.warn(
-        `${
-          browserName ?? 'this browser'
-        } does not support configuring ${key}. Using default value ${
-          getDefaultEncodingByBrowser(browserName)[key as keyof EncodingValues]
-        } instead.`,
-      );
-    }
-  }
-
-  return {
-    ...getDefaultEncodingByBrowser(browserName),
-    ...supportedConstraints,
-  };
+  throw new Error(`Unsupported microphone channel count: ${channelCount}`);
 };
 
 const getStreamSettings = (
   stream: MediaStream,
-  encodingConstraints: Partial<typeof DEFAULT_ENCODING_VALUES>,
+  encodingConstraints: Partial<EncodingValues> = {},
 ): EncodingValues => {
-  const tracks = stream.getAudioTracks();
+  const [track] = stream.getAudioTracks();
 
-  if (tracks.length === 0) {
-    throw new Error('No audio tracks');
-  }
-  if (tracks.length > 1) {
-    throw new Error('Multiple audio tracks');
-  }
-  const track = tracks[0];
   if (!track) {
-    throw new Error('No audio track');
+    throw new Error('The microphone stream has no audio track.');
   }
 
-  const browserInfo = detect();
-  if (!browserInfo) {
-    console.warn(
-      'No browser info available, cannot fallback to browser-specific defaults.',
-    );
-    return DEFAULT_ENCODING_VALUES;
-  } else {
-    const { name: browserName } = browserInfo || {};
+  const settings = track.getSettings();
+  const channelCount =
+    settings.channelCount ??
+    encodingConstraints.channelCount ??
+    DEFAULT_ENCODING_VALUES.channelCount;
 
-    const supportedConstraints = parseTrackEncodingConstraints(
-      track.getCapabilities(),
-      encodingConstraints,
-      browserName,
-    );
-
-    return supportedConstraints;
-  }
+  return {
+    sampleRate:
+      settings.sampleRate ??
+      encodingConstraints.sampleRate ??
+      DEFAULT_ENCODING_VALUES.sampleRate,
+    channelCount: getSupportedChannelCount(channelCount),
+  };
 };
 
-export { getStreamSettings, parseTrackEncodingConstraints };
+export { getStreamSettings };
