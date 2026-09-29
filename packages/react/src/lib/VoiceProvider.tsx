@@ -599,6 +599,15 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
         return;
       }
 
+      // disconnect() can run while the browser is still showing the microphone
+      // permission prompt. It cannot stop a stream that does not exist yet, so
+      // release the stream here and do not create an audio context.
+      if (!checkShouldContinueConnecting()) {
+        console.warn('Connection attempt was canceled. Stopping connection.');
+        stopStream();
+        return;
+      }
+
       const sharedCtx = new AudioContext();
       sharedAudioContextRef.current = sharedCtx;
 
@@ -680,6 +689,7 @@ export const VoiceProvider: FC<VoiceProviderProps> = ({
       getStream,
       micStart,
       player.initPlayer,
+      stopStream,
       status.value,
       updateError,
     ],
